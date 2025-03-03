@@ -1,0 +1,92 @@
+/* General Mobile Styles */
+@media (max-width: 1024px) {
+    body {
+      font-size: 16px;
+    }
+  
+    .container {
+      width: 95%;
+      margin: 0 auto;
+    }
+  
+    /* Responsive Navbar */
+    .navbar {
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+    }
+  
+    .nav-links {
+      display: none; /* Hide by default */
+      flex-direction: column;
+      width: 100%;
+      text-align: center;
+    }
+  
+    .nav-links.active {
+      display: flex; /* Show when active */
+    }
+  
+    .menu-icon {
+      display: block;
+      font-size: 28px;
+      cursor: pointer;
+    }
+  
+    /* Hero Section */
+    .hero {
+      flex-direction: column;
+      text-align: center;
+    }
+  
+    .hero img {
+      width: 90%;
+      height: auto;
+    }
+  
+    /* Section Layout */
+    .section {
+      flex-direction: column;
+      padding: 20px;
+    }
+  
+    .section img {
+      width: 100%;
+      height: auto;
+    }
+  
+    /* Button Adjustments */
+    .btn {
+      width: 100%;
+      padding: 12px;
+    }
+  }
+  
+  /* For Small Devices */
+  @media (max-width: 600px) {
+    body {
+      font-size: 14px;
+    }
+  
+    .container {
+      width: 100%;
+      padding: 0 10px;
+    }
+  
+    .hero h1 {
+      font-size: 22px;
+    }
+  
+    .hero img {
+      width: 100%;
+    }
+  
+    .nav-links {
+      font-size: 18px;
+    }
+  
+    .btn {
+      font-size: 16px;
+    }
+  }
+  
