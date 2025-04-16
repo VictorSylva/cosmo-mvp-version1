@@ -10,6 +10,7 @@ import "react-toastify/dist/ReactToastify.css";
 import "../styles/Products.css";
 import CosmoCartLogo from "../assets/cosmocart-logo.png"; // Add your logo
 
+
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -82,6 +83,12 @@ const Products = () => {
       {/* Fixed Header Section */}
       <header className="header-container">
         <img className="logo" src={CosmoCartLogo} alt="CosmoCart Logo" />
+        <button
+        onClick={() => navigate("/partner-store-dashboard")}
+        className="bg-green-500 text-white px-4 py-2 rounded"
+      >
+        Partner Store
+      </button>
         <button className="wallet-button" onClick={() => navigate("/wallet")}>Go to Wallet</button>
       </header>
 
