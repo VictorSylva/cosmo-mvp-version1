@@ -5,7 +5,7 @@ import { getAnalytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBiuNVVeCupuV9lg36R6dXdETsfUHW08uM",
+  apiKey: "",
   authDomain: "cosmocart-mvp.firebaseapp.com",
   projectId: "cosmocart-mvp",
   storageBucket: "cosmocart-mvp.firebasestorage.app",
