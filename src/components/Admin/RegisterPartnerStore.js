@@ -10,7 +10,10 @@ const RegisterPartnerStore = () => {
     password: '',
     address: '',
     phone: '',
-    contactPerson: ''
+    contactPerson: '',
+    accountName: '',
+    accountNumber: '',
+    bankName: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -49,7 +52,10 @@ const RegisterPartnerStore = () => {
         contactPerson: formData.contactPerson,
         isPartnerStore: true,
         createdAt: new Date(),
-        role: 'partner'
+        role: 'partner',
+        accountName: formData.accountName,
+        accountNumber: formData.accountNumber,
+        bankName: formData.bankName
       });
 
       // Clear the form
@@ -59,7 +65,10 @@ const RegisterPartnerStore = () => {
         password: '',
         address: '',
         phone: '',
-        contactPerson: ''
+        contactPerson: '',
+        accountName: '',
+        accountNumber: '',
+        bankName: ''
       });
 
       setSuccess('Partner store registered successfully!');
@@ -256,6 +265,96 @@ const RegisterPartnerStore = () => {
               type="text"
               required
               value={formData.contactPerson}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #d1d5db',
+                fontSize: '14px'
+              }}
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="accountName"
+              style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}
+            >
+              Account Name
+            </label>
+            <input
+              id="accountName"
+              name="accountName"
+              type="text"
+              required
+              value={formData.accountName}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #d1d5db',
+                fontSize: '14px'
+              }}
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="accountNumber"
+              style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}
+            >
+              Account Number
+            </label>
+            <input
+              id="accountNumber"
+              name="accountNumber"
+              type="text"
+              required
+              value={formData.accountNumber}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #d1d5db',
+                fontSize: '14px'
+              }}
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="bankName"
+              style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}
+            >
+              Bank Name
+            </label>
+            <input
+              id="bankName"
+              name="bankName"
+              type="text"
+              required
+              value={formData.bankName}
               onChange={handleChange}
               style={{
                 width: '100%',

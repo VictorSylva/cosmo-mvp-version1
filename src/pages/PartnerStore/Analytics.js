@@ -4,6 +4,19 @@ import { db } from '../../firebase/firebaseConfig';
 import { usePartnerStore } from '../../contexts/PartnerStoreContext';
 import PartnerLayout from '../../components/PartnerDashboard/PartnerLayout';
 import '../../styles/PartnerStoreDashboard.css';
+import { Bar, Doughnut } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
 const Analytics = () => {
   const { partnerData } = usePartnerStore();
@@ -112,26 +125,72 @@ const Analytics = () => {
 
         <div className="analytics-table">
           <h2>Product Performance</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Redemptions</th>
-                <th>Total Revenue</th>
-                <th>Avg. Price Difference</th>
-              </tr>
-            </thead>
-            <tbody>
+          {/* Compact Individual Product Doughnut Charts */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', marginTop: '1rem', justifyContent: 'center' }}>
               {Object.entries(analytics.products).map(([productId, data]) => (
-                <tr key={productId}>
-                  <td>{data.name}</td>
-                  <td>{data.count}</td>
-                  <td>₦{data.totalRevenue.toFixed(2)}</td>
-                  <td>₦{data.averagePriceDifference.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              <div key={productId} style={{ flex: '1 1 180px', minWidth: 140, maxWidth: 180, background: '#fff', borderRadius: '10px', boxShadow: '0 1px 3px 0 rgba(0,0,0,0.08)', padding: '0.75rem 0.5rem', marginBottom: '0.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem', color: '#222', textAlign: 'center', width: '100%' }}>{data.name}</div>
+                <Doughnut
+                  data={{
+                    labels: ['Redemptions', 'Total Revenue', 'Avg. Price Diff'],
+                    datasets: [
+                      {
+                        data: [data.count, data.totalRevenue, data.averagePriceDifference],
+                        backgroundColor: [
+                          'rgba(247, 13, 5, 0.85)',
+                          'rgba(7, 141, 101, 0.85)',
+                          'rgba(255, 193, 7, 0.85)'
+                        ],
+                        borderWidth: 1,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        callbacks: {
+                          label: function(context) {
+                            let label = context.label || '';
+                            let value = context.parsed;
+                            if (context.dataIndex === 1 || context.dataIndex === 2) {
+                              return `${label}: ₦${value.toLocaleString()}`;
+                            }
+                            return `${label}: ${value}`;
+                          }
+                        }
+                      }
+                    },
+                  }}
+                  height={120}
+                  style={{ minHeight: 120, maxHeight: 120 }}
+                />
+                {/* Value legend below the chart */}
+                <div style={{ width: '100%', marginTop: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: 'rgba(247, 13, 5, 0.85)' }}></span>
+                      <span style={{ fontSize: 12 }}>Redemptions:</span>
+                      <span style={{ fontWeight: 600, fontSize: 13 }}>{data.count}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: 'rgba(7, 141, 101, 0.85)' }}></span>
+                      <span style={{ fontSize: 12 }}>Total Revenue:</span>
+                      <span style={{ fontWeight: 600, fontSize: 13 }}>₦{data.totalRevenue.toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: 'rgba(255, 193, 7, 0.85)' }}></span>
+                      <span style={{ fontSize: 12 }}>Avg. Price Diff:</span>
+                      <span style={{ fontWeight: 600, fontSize: 13 }}>₦{data.averagePriceDifference.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </PartnerLayout>

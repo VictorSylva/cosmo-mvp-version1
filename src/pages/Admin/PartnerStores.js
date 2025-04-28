@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebase/firebaseConfig';
 import RegisterPartnerStore from '../../components/Admin/RegisterPartnerStore';
+import { useNavigate } from 'react-router-dom';
 
 const PartnerStores = () => {
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchStores();
@@ -37,6 +39,12 @@ const PartnerStores = () => {
 
   return (
     <div className="p-6">
+      <button
+        onClick={() => navigate('/admin/dashboard')}
+        style={{ backgroundColor: '#3b82f6', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', marginBottom: '16px', fontWeight: 500, cursor: 'pointer' }}
+      >
+        Back to Admin Dashboard
+      </button>
       <h1 className="text-2xl font-bold mb-6">Partner Stores</h1>
 
       <div className="mb-8">
@@ -46,7 +54,7 @@ const PartnerStores = () => {
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <h2 className="text-lg font-semibold p-4 border-b">Registered Partner Stores</h2>
-        
+        <div className="responsive-table-wrapper">
         {loading ? (
           <div className="p-4">Loading...</div>
         ) : (
@@ -58,13 +66,16 @@ const PartnerStores = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact Person</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Address</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Account Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Account Number</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bank Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Registered On</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {stores.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan="9" className="px-6 py-4 text-center text-gray-500">
                     No partner stores registered yet
                   </td>
                 </tr>
@@ -86,6 +97,15 @@ const PartnerStores = () => {
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {store.address}
                     </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {store.accountName || '-'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {store.accountNumber || '-'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {store.bankName || '-'}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatDate(store.createdAt)}
                     </td>
@@ -95,6 +115,7 @@ const PartnerStores = () => {
             </tbody>
           </table>
         )}
+        </div>
       </div>
     </div>
   );

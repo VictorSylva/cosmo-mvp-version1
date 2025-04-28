@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase/firebaseConfig';
+import { useNavigate } from 'react-router-dom';
 
 const CompletedRetrievals = () => {
   const [retrievals, setRetrievals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isPartnerView, setIsPartnerView] = useState(false);
   const [storeNames, setStoreNames] = useState({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     checkUserRole();
@@ -133,6 +135,12 @@ const CompletedRetrievals = () => {
 
   return (
     <div className="p-6" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <button
+        onClick={() => navigate('/admin/dashboard')}
+        style={{ backgroundColor: '#3b82f6', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', marginBottom: '16px', fontWeight: 500, cursor: 'pointer' }}
+      >
+        Back to Admin Dashboard
+      </button>
       <h1 style={{
         fontSize: '24px',
         fontWeight: '600',
@@ -153,28 +161,10 @@ const CompletedRetrievals = () => {
           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
           overflow: 'hidden'
         }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead style={{ backgroundColor: '#f9fafb' }}>
-              <tr>
-                <th style={{
-                  padding: '12px 16px',
-                  textAlign: 'left',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#6b7280',
-                  textTransform: 'uppercase',
-                  borderBottom: '1px solid #e5e7eb'
-                }}>ID</th>
-                <th style={{
-                  padding: '12px 16px',
-                  textAlign: 'left',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#6b7280',
-                  textTransform: 'uppercase',
-                  borderBottom: '1px solid #e5e7eb'
-                }}>Product</th>
-                {!isPartnerView && (
+          <div className="responsive-table-wrapper">
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead style={{ backgroundColor: '#f9fafb' }}>
+                <tr>
                   <th style={{
                     padding: '12px 16px',
                     textAlign: 'left',
@@ -183,137 +173,157 @@ const CompletedRetrievals = () => {
                     color: '#6b7280',
                     textTransform: 'uppercase',
                     borderBottom: '1px solid #e5e7eb'
-                  }}>Partner Store</th>
-                )}
-                <th style={{
-                  padding: '12px 16px',
-                  textAlign: 'left',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#6b7280',
-                  textTransform: 'uppercase',
-                  borderBottom: '1px solid #e5e7eb'
-                }}>Customer</th>
-                <th style={{
-                  padding: '12px 16px',
-                  textAlign: 'left',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#6b7280',
-                  textTransform: 'uppercase',
-                  borderBottom: '1px solid #e5e7eb'
-                }}>Prepaid Price</th>
-                <th style={{
-                  padding: '12px 16px',
-                  textAlign: 'left',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#6b7280',
-                  textTransform: 'uppercase',
-                  borderBottom: '1px solid #e5e7eb'
-                }}>Retrieved At</th>
-              </tr>
-            </thead>
-            <tbody>
-              {retrievals.length === 0 ? (
-                <tr>
-                  <td 
-                    colSpan={isPartnerView ? 5 : 6} 
-                    style={{
-                      padding: '16px',
-                      textAlign: 'center',
-                      color: '#6b7280'
-                    }}
-                  >
-                    No completed retrievals found
-                  </td>
+                  }}>ID</th>
+                  <th style={{
+                    padding: '12px 16px',
+                    textAlign: 'left',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#6b7280',
+                    textTransform: 'uppercase',
+                    borderBottom: '1px solid #e5e7eb'
+                  }}>Product</th>
+                  {!isPartnerView && (
+                    <th style={{
+                      padding: '12px 16px',
+                      textAlign: 'left',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      color: '#6b7280',
+                      textTransform: 'uppercase',
+                      borderBottom: '1px solid #e5e7eb'
+                    }}>Partner Store</th>
+                  )}
+                  <th style={{
+                    padding: '12px 16px',
+                    textAlign: 'left',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#6b7280',
+                    textTransform: 'uppercase',
+                    borderBottom: '1px solid #e5e7eb'
+                  }}>Customer</th>
+                  <th style={{
+                    padding: '12px 16px',
+                    textAlign: 'left',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#6b7280',
+                    textTransform: 'uppercase',
+                    borderBottom: '1px solid #e5e7eb'
+                  }}>Prepaid Price</th>
+                  <th style={{
+                    padding: '12px 16px',
+                    textAlign: 'left',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#6b7280',
+                    textTransform: 'uppercase',
+                    borderBottom: '1px solid #e5e7eb'
+                  }}>Retrieved At</th>
                 </tr>
-              ) : (
-                retrievals.map((retrieval, index) => (
-                  <tr 
-                    key={`${retrieval.id}-${index}`}
-                    style={{
-                      borderBottom: '1px solid #e5e7eb',
-                      transition: 'background-color 0.2s',
-                      ':hover': {
-                        backgroundColor: '#f9fafb'
-                      }
-                    }}
-                  >
-                    <td style={{
-                      padding: '16px',
-                      fontSize: '14px',
-                      color: '#1f2937'
-                    }}>{retrieval.id}</td>
-                    <td style={{
-                      padding: '16px',
-                      fontSize: '14px'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        {retrieval.imageUrl && (
+              </thead>
+              <tbody>
+                {retrievals.length === 0 ? (
+                  <tr>
+                    <td 
+                      colSpan={isPartnerView ? 5 : 6} 
+                      style={{
+                        padding: '16px',
+                        textAlign: 'center',
+                        color: '#6b7280'
+                      }}
+                    >
+                      No completed retrievals found
+                    </td>
+                  </tr>
+                ) : (
+                  retrievals.map((retrieval, index) => (
+                    <tr 
+                      key={`${retrieval.id}-${index}`}
+                      style={{
+                        borderBottom: '1px solid #e5e7eb',
+                        transition: 'background-color 0.2s',
+                        ':hover': {
+                          backgroundColor: '#f9fafb'
+                        }
+                      }}
+                    >
+                      <td style={{
+                        padding: '16px',
+                        fontSize: '14px',
+                        color: '#1f2937'
+                      }}>{retrieval.id}</td>
+                      <td style={{
+                        padding: '16px',
+                        fontSize: '14px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          {retrieval.imageUrl && (
+                            <div style={{
+                              width: '48px',
+                              height: '48px',
+                              marginRight: '12px',
+                              borderRadius: '4px',
+                              overflow: 'hidden',
+                              border: '1px solid #e5e7eb'
+                            }}>
+                              <img
+                                src={retrieval.imageUrl}
+                                alt={retrieval.productName}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover'
+                                }}
+                              />
+                            </div>
+                          )}
                           <div style={{
-                            width: '48px',
-                            height: '48px',
-                            marginRight: '12px',
-                            borderRadius: '4px',
-                            overflow: 'hidden',
-                            border: '1px solid #e5e7eb'
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            color: '#1f2937'
                           }}>
-                            <img
-                              src={retrieval.imageUrl}
-                              alt={retrieval.productName}
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover'
-                              }}
-                            />
+                            {retrieval.productName}
                           </div>
-                        )}
-                        <div style={{
+                        </div>
+                      </td>
+                      {!isPartnerView && (
+                        <td style={{
+                          padding: '16px',
                           fontSize: '14px',
-                          fontWeight: '500',
                           color: '#1f2937'
                         }}>
-                          {retrieval.productName}
-                        </div>
-                      </div>
-                    </td>
-                    {!isPartnerView && (
+                          {storeNames[retrieval.confirmedByPartner] || 'Unknown Store'}
+                        </td>
+                      )}
                       <td style={{
                         padding: '16px',
                         fontSize: '14px',
                         color: '#1f2937'
                       }}>
-                        {storeNames[retrieval.confirmedByPartner] || 'Unknown Store'}
+                        {retrieval.customerEmail}
                       </td>
-                    )}
-                    <td style={{
-                      padding: '16px',
-                      fontSize: '14px',
-                      color: '#1f2937'
-                    }}>
-                      {retrieval.customerEmail}
-                    </td>
-                    <td style={{
-                      padding: '16px',
-                      fontSize: '14px',
-                      color: '#1f2937'
-                    }}>
-                      ₦{retrieval.prepaidPrice.toFixed(2)}
-                    </td>
-                    <td style={{
-                      padding: '16px',
-                      fontSize: '14px',
-                      color: '#1f2937'
-                    }}>
-                      {formatDate(retrieval.confirmedAt)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                      <td style={{
+                        padding: '16px',
+                        fontSize: '14px',
+                        color: '#1f2937'
+                      }}>
+                        ₦{retrieval.prepaidPrice.toFixed(2)}
+                      </td>
+                      <td style={{
+                        padding: '16px',
+                        fontSize: '14px',
+                        color: '#1f2937'
+                      }}>
+                        {formatDate(retrieval.confirmedAt)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

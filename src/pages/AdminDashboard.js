@@ -240,12 +240,20 @@ const AdminDashboard = () => {
 
   return (
     <div className="admin-dashboard">
-      <div className="admin-header">
-        <h1 className="admin-title">Admin Dashboard</h1>
-        <button onClick={handleLogout} className="logout-button">
-            Logout
-          </button>
+      <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <button
+          onClick={() => navigate('/products')}
+          className="back-button"
+        >
+          Back to Products
+        </button>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+          <h1 className="admin-title" style={{ margin: 0 }}>Admin Dashboard</h1>
         </div>
+        <button onClick={handleLogout} className="logout-button">
+          Logout
+        </button>
+      </div>
 
       <div className="stats-grid">
         <div className="stat-card">

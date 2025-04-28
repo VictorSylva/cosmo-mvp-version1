@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, query, where, orderBy } from 'firebase/firestore';
 import { db, auth } from '../../firebase/firebaseConfig';
+import { useNavigate } from 'react-router-dom';
 
 const PartnerPayments = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending'); // 'all', 'pending', 'approved', 'completed'
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchPayments();
@@ -67,6 +69,12 @@ const PartnerPayments = () => {
 
   return (
     <div className="p-6">
+      <button
+        onClick={() => navigate('/admin/dashboard')}
+        style={{ backgroundColor: '#3b82f6', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', marginBottom: '16px', fontWeight: 500, cursor: 'pointer' }}
+      >
+        Back to Admin Dashboard
+      </button>
       <h1 className="text-2xl font-bold mb-6">Partner Store Payments</h1>
       
       <div className="mb-6 flex gap-2">
