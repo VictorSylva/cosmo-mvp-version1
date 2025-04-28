@@ -1,105 +1,165 @@
-import React from "react";
-import styled from "styled-components";
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const LandingPage = () => {
+  const navigate = useNavigate();
+
   return (
-    <LandingContainer>
-      <NavBar>
-        <Logo>CosmoCart</Logo>
-        <NavLinks>
-          <SignupButton href="/signup">Signup</SignupButton>
-          <NavItem href="/login">Login</NavItem>
-        </NavLinks>
-        <MenuIcon>☰</MenuIcon>
-      </NavBar>
-      <HeroSection>
-        <HeroText>
-          Lock in food prices before they rise!  
-          <br />  
-          Prepay now and enjoy later.  
-        </HeroText>
-      </HeroSection>
-    </LandingContainer>
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#f3f4f6',
+      padding: '20px'
+    }}>
+      <div style={{
+        maxWidth: '1200px',
+        margin: '0 auto',
+        paddingTop: '60px'
+      }}>
+        <h1 style={{
+          fontSize: '36px',
+          fontWeight: '700',
+          color: '#1f2937',
+          textAlign: 'center',
+          marginBottom: '16px'
+        }}>
+          Welcome to CosmoCart
+        </h1>
+        <p style={{
+          fontSize: '18px',
+          color: '#6b7280',
+          textAlign: 'center',
+          marginBottom: '24px'
+        }}>
+          Choose how you want to proceed
+        </p>
+
+        {/* Regular User Signup Button */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          marginBottom: '32px'
+        }}>
+          <button
+            onClick={() => navigate('/signup')}
+            style={{
+              backgroundColor: '#4f46e5',
+              color: 'white',
+              padding: '12px 24px',
+              borderRadius: '6px',
+              border: 'none',
+              fontSize: '16px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#4338ca'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#4f46e5'}
+          >
+            Sign Up as User
+          </button>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: '24px',
+          maxWidth: '800px',
+          margin: '0 auto'
+        }}>
+          {/* Regular User Card */}
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '32px',
+            textAlign: 'center',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+            transition: 'transform 0.2s',
+            cursor: 'pointer'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+          onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          onClick={() => navigate('/login')}
+          >
+            <h2 style={{
+              fontSize: '24px',
+              fontWeight: '600',
+              color: '#1f2937',
+              marginBottom: '16px'
+            }}>Regular User</h2>
+            <p style={{
+              fontSize: '16px',
+              color: '#6b7280',
+              marginBottom: '24px'
+            }}>
+              Browse and prepay for items at partner stores
+            </p>
+            <button style={{
+              backgroundColor: '#4f46e5',
+              color: 'white',
+              padding: '12px 24px',
+              borderRadius: '6px',
+              border: 'none',
+              fontSize: '16px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#4338ca'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#4f46e5'}
+            >
+              Login as User
+            </button>
+          </div>
+
+          {/* Partner Store Card */}
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '32px',
+            textAlign: 'center',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+            transition: 'transform 0.2s',
+            cursor: 'pointer'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+          onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          onClick={() => navigate('/partner-login')}
+          >
+            <h2 style={{
+              fontSize: '24px',
+              fontWeight: '600',
+              color: '#1f2937',
+              marginBottom: '16px'
+            }}>Partner Store</h2>
+            <p style={{
+              fontSize: '16px',
+              color: '#6b7280',
+              marginBottom: '24px'
+            }}>
+              Manage your store and process redemptions
+            </p>
+            <button style={{
+              backgroundColor: '#059669',
+              color: 'white',
+              padding: '12px 24px',
+              borderRadius: '6px',
+              border: 'none',
+              fontSize: '16px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#047857'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#059669'}
+            >
+              Login as Partner
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
 export default LandingPage;
-
-// Styled Components
-const LandingContainer = styled.div`
-  background: url("/cosmo2.jpg") no-repeat center center/cover;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-`;
-
-const NavBar = styled.nav`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  position: absolute;
-  width: 100%;
-  top: 0;
-  z-index: 10;
-`;
-
-const Logo = styled.h1`
-  color: #095859;
-  font-size: 30px;
-  font-weight: bold;
-`;
-
-const NavLinks = styled.div`
-  display: flex;
-  gap: 20px;
-`;
-
-// Styled Signup Button with Thick Red Border
-const SignupButton = styled.a`
-  background-color: transparent;
-  color: white;
-  border: 4px solid red; /* Thick red border */
-  padding: 10px 20px;
-  font-size: 16px;
-  font-weight: bold;
-  border-radius: 8px;
-  cursor: pointer;
-  text-decoration: none;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background-color: red;
-    color: white;
-  }
-`;
-
-const NavItem = styled.a`
-  color: white;
-  text-decoration: none;
-  font-size: 16px;
-  &:hover {
-    color: #095859;
-  }
-`;
-
-const MenuIcon = styled.div`
-  color: white;
-  font-size: 24px;
-  cursor: pointer;
-`;
-
-const HeroSection = styled.div`
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-`;
-
-const HeroText = styled.h1`
-  color: white;
-  font-size: 48px;
-  font-weight: bold;
-`;
 
