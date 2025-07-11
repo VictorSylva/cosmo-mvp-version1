@@ -65,4 +65,73 @@
     background-color: red;
     color: #095859;
   }
+
+.redesigned-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 40px;
+  background: #233c2d;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+  border-radius: 18px;
+  margin: 32px auto 0 auto;
+  max-width: 1200px;
+}
+
+.navbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navbar-logo-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.navbar-logo-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar-links li a {
+  color: #e0ffe1;
+  font-size: 1.1rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.navbar-links li a:hover {
+  color: #ffe600;
+}
+
+.navbar-signup-btn {
+  background: #ffe600;
+  color: #233c2d;
+  font-weight: 700;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.navbar-signup-btn:hover {
+  background: #fff200;
+  color: #095859;
+}
   

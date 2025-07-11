@@ -1,9 +1,10 @@
 PRODUCTS PAGE STYLING
 
 /* General Page Layout */
-body, .page-container {
-  overflow-x: hidden;
-  width: 100vw;
+body, html {
+  overflow-x: hidden !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
 }
 
 .page-container {
@@ -12,6 +13,7 @@ body, .page-container {
   min-height: 100vh;
   background: #dbd2d2;
   font-family: Arial, sans-serif;
+  margin-left: 72px;
 }
 
 /* Header Section */
@@ -50,41 +52,26 @@ body, .page-container {
   flex: 1;
   max-width: 1200px;
   margin: 0 auto;
-  gap: 20px;
+  gap: 0;
   padding-top: 10px;
 }
 
-/* Sidebar */
-.sidebar {
+/* Remove old sidebar filter styles */
+.sidebar, .sidebar-label, .sidebar-select {
+  display: none !important;
+}
+
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 0;
   padding-top: 10px;
-  width: 250px;
-  margin-top: -10px;
-  padding: 10px;
-  background: #095859;
-  color: white;
-  border-radius: 10px;
   display: flex;
-  flex-direction: column;
-  gap: 15px;
+  flex: 1;
 }
-
-.sidebar label {
-  font-size: 14px;
-  font-weight: bold;
-}
-
-.sidebar select,
-.sidebar input {
-  padding: 8px;
-  border-radius: 5px;
-  border: none;
-  outline: none;
-}
-
-/* Product Section */
 .product-section {
   flex: 1;
-  padding: 40px;
+  padding: 40px 0;
 }
 
 .wallet-button {
@@ -119,70 +106,135 @@ body, .page-container {
     cursor: pointer;
   }
 
-/* Product Grid */
-.product-grid {
-  column-count: 3;
-  /* display: grid; */
-  /* grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); */
-  gap: 20px;
-  width: 92%;
-  max-width: 1000px;
-  
+/* Masonry Grid Styles for Pinterest Layout */
+.my-masonry-grid {
+  display: flex;
+  margin-left: -20px; /* gutter size offset */
+  width: auto;
+}
+.my-masonry-grid_column {
+  padding-left: 20px; /* gutter size */
+  background-clip: padding-box;
 }
 
-/* Product Card */
-.product-card {
-  /* display: inline-block; */
+/* Style each card inside masonry */
+.my-masonry-grid_column > .product-card {
+  margin-bottom: 20px;
+}
+
+/* Search Bar Styles */
+.header-search-bar {
+  flex: 1;
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
+  margin: 0 24px;
+}
+.search-input {
+  width: 320px;
+  padding: 10px 16px;
+  border-radius: 24px;
+  border: 1px solid #e0e0e0;
+  font-size: 1rem;
+  outline: none;
+  transition: border 0.2s;
+  background: #f8f8f8;
+}
+.search-input:focus {
+  border: 1.5px solid #095859;
+  background: #fff;
+}
+
+/* Remove old grid styles that conflict */
+.product-grid {
+  column-count: unset;
   width: 100%;
-  background: white;
-  border-radius: 12px;
-  padding: 15px;
-  text-align: center;
-  box-shadow: 0px 5px 12px rgba(0, 0, 0, 0.15);
-  transition: transform 0.3s ease;
-  margin-bottom: 15px;
-  break-inside: avoid;
+  max-width: unset;
+  gap: unset;
+  display: unset;
 }
 
-.product-card:hover {
-  transform: scale(1.05);
+/* Product Card Tweaks for Masonry */
+.product-card {
+  position: relative;
+  width: 100%;
+  background: none;
+  border: none;
+  box-shadow: none;
+  border-radius: 16px;
+  overflow: visible;
+  cursor: pointer;
+  padding: 0;
+  display: block;
+  margin: 0 auto 20px auto;
 }
-
+.product-image-container {
+  position: relative;
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
 .product-image {
   width: 100%;
-  /* height: 180px; */
+  height: auto;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 16px;
+  display: block;
 }
-
+.product-overlay {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  background: rgba(20, 40, 40, 0.82);
+  color: #fff;
+  padding: 18px 16px 12px 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s;
+  border-radius: 0 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.product-image-container:hover .product-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+.product-overlay .product-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: #fff;
+}
+.product-overlay .product-price {
+  font-size: 1rem;
+  color: #ffe600;
+  margin: 0;
+}
 .product-name {
-  font-size: 18px;
-  color: #333;
-  margin: 10px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 12px 0 4px 0;
+  color: #222;
 }
-
 .product-price {
-  font-size: 16px;
+  font-size: 1rem;
   color: #095859;
-  font-weight: bold;
+  margin-bottom: 8px;
 }
-
-.paystack-button {
-  background: #86a17d;
-  color: white;
-  padding: 10px 15px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.paystack-button:hover {
+.selection-indicator {
+  font-size: 0.95rem;
+  color: #fff;
   background: #095859;
+  border-radius: 12px;
+  padding: 4px 12px;
+  margin-bottom: 10px;
+  margin-top: 4px;
+  transition: background 0.2s;
+}
+.product-card.in-cart .selection-indicator {
+  background: #1db954;
 }
 
 /* No Products Message */
@@ -196,7 +248,7 @@ body, .page-container {
 
 /* For screens below 3840px */
 @media (max-width: 3840px) {
-  .product-grid {
+  .my-masonry-grid {
     grid-template-columns: repeat(auto-fill, minmax(250px), 1fr);
     grid-auto-rows: auto;
     grid-auto-flow: dense;
@@ -224,7 +276,7 @@ body, .page-container {
 
 /* For screens below 900px */
 @media (max-width: 900px) {
-  .product-grid {
+  .my-masonry-grid {
     grid-template-columns: repeat(auto-fill, minmax(250px), 1fr);
     grid-auto-rows: auto;
     grid-auto-flow: dense;
@@ -252,7 +304,7 @@ body, .page-container {
 
 /* For screens below 850px */
 @media (max-width: 850px) {
-  .product-grid {
+  .my-masonry-grid {
     grid-template-columns: repeat(auto-fill, minmax(250px), 1fr);
     grid-auto-rows: auto;
     grid-auto-flow: dense;
@@ -281,7 +333,7 @@ body, .page-container {
 
  /* For screens below 768px */
 @media (max-width: 768px) {
-  .product-grid {
+  .my-masonry-grid {
       grid-template-columns: repeat(auto-fill, minmax(250px), 1fr);
       grid-auto-rows: auto;
       grid-auto-flow: dense;
@@ -318,7 +370,7 @@ body, .page-container {
 
 /* For screens below 600px */
 @media (max-width: 600px) {
-  .product-grid {
+  .my-masonry-grid {
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 
@@ -351,7 +403,7 @@ body, .page-container {
 
 /* For screens below 400px */
 @media (max-width: 400px) {
-  .product-grid {
+  .my-masonry-grid {
       grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
 
@@ -360,29 +412,565 @@ body, .page-container {
   }
 }
 
+/* Cart Summary */
+.cart-summary {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 20px;
+  z-index: 100;
+}
+
+.cart-summary h3 {
+  color: #095859;
+  margin-bottom: 10px;
+}
+
+.cart-summary p {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+/* Product Card Selection */
+.product-card.selected {
+  border-color: #095859;
+  background-color: #f8f9fa;
+}
+
+.selection-indicator {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(9, 88, 89, 0.9);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.product-card.selected .selection-indicator {
+  background: #095859;
+}
+
+/* Header Buttons */
+.header-buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-button {
+  background-color: #095859;
+  color: white;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s ease-in-out;
+}
+
+.admin-button:hover {
+  background: #063f3f;
+}
+
+.logout-button {
+  background-color: #dc3545;
+  color: white;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s ease-in-out;
+}
+
+.logout-button:hover {
+  background-color: #c82333;
+}
+
+/* Partner Store Button */
+.partner-store-button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s ease-in-out;
+}
+
+.partner-store-button.active {
+  background-color: #28a745;
+  color: white;
+}
+
+.partner-store-button.active:hover {
+  background-color: #218838;
+}
+
+.partner-store-button.inactive {
+  background-color: #6c757d;
+  color: white;
+  opacity: 0.8;
+}
+
+.partner-store-button.inactive:hover {
+  opacity: 1;
+}
+
+/* Notification */
 .notification {
   position: fixed;
   top: 20px;
-  right: 20px;
-  background-color: #fff;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #fff; /* Use white background for clarity */
+  color: #333; /* Dark text color */
   padding: 15px 25px;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Stronger shadow */
+  z-index: 10000; /* Very high z-index */
   font-size: 16px;
-  color: #333;
-  border-left: 4px solid #28a745;
-  animation: slideIn 0.3s ease-out;
+  border-left: 5px solid #095859; /* Accent border */
+  animation: fadeInOut 3s ease-in-out; /* Keep animation but ensure visibility */
+  opacity: 1; /* Ensure it starts visible */
+  pointer-events: none; /* Allows clicks on elements underneath */
 }
 
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
+@keyframes fadeInOut {
+  0% {
     opacity: 0;
+    transform: translateX(-50%) translateY(-20px); /* Start slightly above and faded */
   }
-  to {
-    transform: translateX(0);
+  10% {
     opacity: 1;
+    transform: translateX(-50%) translateY(0); /* Fade in and slide down */
+  }
+  90% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0); /* Stay visible */
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px); /* Fade out and slide up */
+  }
+}
+
+/* Responsive Masonry Columns */
+@media (max-width: 1100px) {
+  .my-masonry-grid {
+    margin-left: -15px;
+  }
+  .my-masonry-grid_column {
+    padding-left: 15px;
+  }
+}
+@media (max-width: 700px) {
+  .header-search-bar {
+    margin: 0 8px;
+  }
+  .search-input {
+    width: 100%;
+    min-width: 0;
+  }
+}
+@media (max-width: 600px) {
+  .my-masonry-grid {
+    margin-left: -8px;
+  }
+  .my-masonry-grid_column {
+    padding-left: 8px;
+  }
+  .product-card {
+    min-width: 140px;
+    max-width: 100vw;
+    margin: 0 0 16px 0 !important;
+    padding: 0 !important;
+  }
+  .product-image-container {
+    border-radius: 12px;
+  }
+  .product-image {
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 435px) {
+  .product-overlay {
+    padding: 10px 8px 8px 8px;
+  }
+  .product-overlay .product-name {
+    font-size: 0.95rem;
+  }
+  .product-overlay .product-price {
+    font-size: 0.85rem;
+  }
+  .main-content, .product-section, .my-masonry-grid {
+    width: 100vw;
+    max-width: 100vw;
+    padding: 0;
+  }
+}
+
+/* Pinterest-style Sidebar Navigation */
+.pinterest-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 64px;
+  min-width: 64px;
+  max-width: 64px;
+  height: 100vh;
+  background: #fff;
+  border-right: 1.5px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 100;
+  box-shadow: 2px 0 12px rgba(0,0,0,0.04);
+  padding: 18px 0 0 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow: visible !important;
+}
+.sidebar-logo {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidebar-logo img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 12px;
+}
+.sidebar-icons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  width: 100%;
+  padding-left: 0;
+  overflow: visible !important;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 100vh;
+}
+.sidebar-icons button, .sidebar-icons button * {
+  display: flex !important;
+  align-items: center;
+}
+.sidebar-icons button {
+  overflow: visible !important;
+  background: none;
+  border: none;
+  outline: none;
+  color: #064d4d;
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 12px;
+  transition: background 0.18s, color 0.18s;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  position: relative;
+  opacity: 1;
+  border: 1px solid transparent;
+}
+.sidebar-icons button span {
+  font-size: 1.18rem;
+  margin-left: 12px;
+  color: #095859;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: color 0.18s;
+}
+.sidebar-icons button:hover, .sidebar-icons button:focus {
+  background: #e0ffe1;
+  color: #1db954;
+  border: 1.5px solid #1db954;
+}
+.sidebar-icons button:hover span, .sidebar-icons button:focus span {
+  color: #1db954;
+}
+.sidebar-icons button:disabled {
+  opacity: 0.7;
+  pointer-events: none;
+}
+.sidebar-icons button svg {
+  font-size: 1.4rem !important;
+  min-width: 24px;
+  min-height: 24px;
+  display: inline-block;
+  vertical-align: middle;
+  color: #064d4d;
+  background: transparent;
+  border-radius: 6px;
+}
+.sidebar-icons button .sidebar-tooltip {
+  display: none;
+  position: absolute;
+  left: 110%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #064d4d;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 7px 16px;
+  border-radius: 8px;
+  white-space: nowrap;
+  z-index: 999;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s, left 0.18s;
+}
+.sidebar-tooltip {
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+}
+.sidebar-icons button:hover > .sidebar-tooltip,
+.sidebar-icons button:focus > .sidebar-tooltip {
+  display: block !important;
+  opacity: 1 !important;
+  left: 105% !important;
+}
+.sidebar-icons button .sidebar-tooltip::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent #064d4d transparent transparent;
+}
+.cart-badge {
+  background: #e53935 !important;
+  color: #fff !important;
+  font-size: 1.2rem !important;
+  font-weight: bold !important;
+  border-radius: 50% !important;
+  padding: 6px 12px !important;
+  margin-left: 8px !important;
+  position: static !important;
+  min-width: 32px !important;
+  text-align: center !important;
+  border: 2px solid #000 !important;
+  z-index: 9999 !important;
+  display: inline-block !important;
+}
+@media (max-width: 700px) {
+  .pinterest-sidebar {
+    width: 56px;
+  }
+  .sidebar-logo {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 18px;
+  }
+  .sidebar-logo img {
+    width: 32px;
+    height: 32px;
+  }
+  .sidebar-icons button span {
+    display: none;
+  }
+  .sidebar-icons button {
+    justify-content: center;
+    gap: 0;
+    min-width: 36px;
+    width: 36px;
+    font-size: 1.2rem;
+    padding-left: 0;
+    height: 40px;
+  }
+  .page-container {
+    margin-left: 56px;
+  }
+}
+
+/* Push main content to the right of sidebar */
+.page-container {
+  margin-left: 72px;
+}
+@media (max-width: 700px) {
+  .pinterest-sidebar {
+    width: 56px;
+    padding-top: 8px;
+  }
+  .sidebar-logo {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 18px;
+  }
+  .sidebar-logo img {
+    width: 32px;
+    height: 32px;
+  }
+  .sidebar-icons button {
+    font-size: 1.2rem;
+    width: 36px;
+    height: 36px;
+  }
+  .page-container {
+    margin-left: 56px;
+  }
+}
+
+.pinterest-sidebar .sidebar-icons button > span {
+  display: none !important;
+}
+
+.sidebar-search-float {
+  position: fixed;
+  left: 64px;
+  top: 24px;
+  z-index: 10001;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.13);
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  min-width: 240px;
+  border: 1.5px solid #e0e0e0;
+}
+.sidebar-search-float input {
+  border: none;
+  outline: none;
+  font-size: 1.1rem;
+  background: transparent;
+  width: 200px;
+  padding: 6px 0;
+}
+
+.sidebar-categories-float {
+  position: fixed;
+  left: 64px;
+  top: 80px;
+  z-index: 10001;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.13);
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  border: 1.5px solid #e0e0e0;
+}
+.sidebar-categories-float button {
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 1.05rem;
+  color: #064d4d;
+  padding: 10px 18px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+}
+.sidebar-categories-float button:hover,
+.sidebar-categories-float button.active {
+  background: #e0ffe1;
+  color: #1db954;
+}
+
+.my-masonry-grid .product-card {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  display: block !important;
+  padding: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 16px !important;
+  overflow: visible !important;
+  margin: 0 auto 20px auto !important;
+}
+.my-masonry-grid .product-image-container {
+  position: relative;
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+.my-masonry-grid .product-image {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  object-fit: cover !important;
+  margin: 0 !important;
+  border-radius: 16px !important;
+  background: none !important;
+  display: block !important;
+}
+
+body, html {
+  overflow-x: hidden !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+}
+
+* {
+  box-sizing: border-box !important;
+}
+
+.page-container, .main-content, .product-section, .my-masonry-grid, .my-masonry-grid_column, .product-card, .product-image-container, .product-image {
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 700px) {
+  .my-masonry-grid {
+    margin-left: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+  .my-masonry-grid_column {
+    padding-left: 0 !important;
+  }
+  .product-card,
+  .product-image-container {
+    min-width: 0 !important;
+    max-width: 100vw !important;
+  }
+}
+@media (max-width: 435px) {
+  .my-masonry-grid {
+    margin-left: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+  .my-masonry-grid_column {
+    padding-left: 0 !important;
+  }
+  .product-card,
+  .product-image-container {
+    min-width: 0 !important;
+    max-width: 100vw !important;
   }
 }
 
