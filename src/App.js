@@ -14,13 +14,13 @@ import PartnerStoreDashboard from "./pages/PartnerStoreDashboard";
 import PartnerPayments from "./pages/Admin/PartnerPayments";
 import CompletedRetrievals from "./pages/Admin/CompletedRetrievals";
 import PartnerStores from "./pages/Admin/PartnerStores";
-import LandingPage from "./components/LandingPage/LandingPage";
 import PartnerStoreLogin from "./pages/PartnerStoreLogin";
 import PartnerStoreSignup from "./pages/PartnerStoreSignup";
 import ManageProducts from "./pages/PartnerStore/ManageProducts";
 import PaymentHistory from "./pages/PartnerStore/PaymentHistory";
 import Analytics from "./pages/PartnerStore/Analytics";
 import Cart from "./pages/Cart";
+import AuthHome from "./pages/AuthHome";
 
 function App() {
   return (
@@ -29,7 +29,7 @@ function App() {
         <PartnerStoreProvider>
           <CartProvider>
             <Routes>
-              <Route path="/" element={<LandingPage />} />
+              <Route path="/" element={<AuthHome />} />
               <Route path="/login" element={<Login />} />
               <Route path="/partner-login" element={<PartnerStoreLogin />} />
               <Route path="/signup" element={<Signup />} />

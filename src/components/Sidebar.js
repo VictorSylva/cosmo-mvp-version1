@@ -7,7 +7,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "../firebase/firebaseConfig";
 import "../styles/Products.css";
 
-const Sidebar = ({ isAdmin, isPartnerStore, goToAdminDashboard, handlePartnerStoreClick }) => {
+const Sidebar = ({ isAdmin, isPartnerStore, goToAdminDashboard, handlePartnerStoreClick, onSearchClick, onCategorySelect, selectedCategory }) => {
   const navigate = useNavigate();
   const { cartItems } = useCart();
   console.log('Sidebar cartItems:', cartItems); // DEBUG
@@ -69,7 +69,9 @@ const Sidebar = ({ isAdmin, isPartnerStore, goToAdminDashboard, handlePartnerSto
   }, [showSidebarCategories]);
 
   function handleSidebarCategorySelect(cat) {
-    // This should be handled by parent if needed
+    if (onCategorySelect) {
+      onCategorySelect(cat);
+    }
     setShowSidebarCategories(false);
   }
 
@@ -81,12 +83,14 @@ const Sidebar = ({ isAdmin, isPartnerStore, goToAdminDashboard, handlePartnerSto
 
   return (
     <nav className="pinterest-sidebar">
+      <div className="sidebar-logo-row">
       <div className="sidebar-logo" onClick={() => navigate("/")}> 
         <img src={CosmoCartLogo} alt="Logo" />
+        </div>
+        {/* Search icon removed from sidebar */}
       </div>
       <div className="sidebar-icons">
         <button aria-label="Home" onClick={() => navigate("/")}> <FaHome /> <span className="sidebar-tooltip">Home</span> </button>
-        <button aria-label="Search" onClick={() => setShowSidebarSearch(true)}> <FaSearch /> <span className="sidebar-tooltip">Search</span> </button>
         <button aria-label="Categories" onClick={() => setShowSidebarCategories(true)}> <FaThLarge /> <span className="sidebar-tooltip">Categories</span> </button>
         <button aria-label="Admin Dashboard" disabled={!isAdmin} style={{opacity: isAdmin ? 1 : 0.7, pointerEvents: isAdmin ? 'auto' : 'none'}} onClick={goToAdminDashboard}> <FaUserShield /> <span className="sidebar-tooltip">Admin</span> </button>
         <button aria-label="Partner Store Dashboard" disabled={!isPartnerStore} style={{opacity: isPartnerStore ? 1 : 0.7, pointerEvents: isPartnerStore ? 'auto' : 'none'}} onClick={handlePartnerStoreClick}> <FaStore /> <span className="sidebar-tooltip">Store</span> </button>
@@ -100,7 +104,6 @@ const Sidebar = ({ isAdmin, isPartnerStore, goToAdminDashboard, handlePartnerSto
           )}
         </div>
         <button aria-label="Wallet" onClick={() => navigate("/wallet")}> <FaWallet /> <span className="sidebar-tooltip">Wallet</span> </button>
-        <button aria-label="Profile" onClick={() => navigate("/profile")}> <FaUser /> <span className="sidebar-tooltip">Profile</span> </button>
         <button aria-label="Logout" onClick={async () => { await signOut(auth); navigate("/"); }}> <FaSignOutAlt /> <span className="sidebar-tooltip">Logout</span> </button>
       </div>
       {showSidebarSearch && (
@@ -119,7 +122,7 @@ const Sidebar = ({ isAdmin, isPartnerStore, goToAdminDashboard, handlePartnerSto
           {categories.map(cat => (
             <button
               key={cat}
-              className={cat === "All" ? "active" : ""}
+              className={cat === selectedCategory ? "active" : ""}
               onClick={() => handleSidebarCategorySelect(cat)}
             >
               {cat}

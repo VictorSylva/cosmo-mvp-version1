@@ -9,7 +9,7 @@ import "../styles/Products.css";
 import CosmoCartLogo from "../assets/cosmocart-logo.png"; // Add your logo
 import { useCart } from '../context/CartContext'; // Import useCart hook
 import Masonry from "react-masonry-css";
-import { FaHome, FaSearch, FaThLarge, FaShoppingCart, FaWallet, FaUser, FaUserShield, FaStore, FaSignOutAlt } from "react-icons/fa";
+import { FaHome, FaSearch, FaThLarge, FaShoppingCart, FaWallet, FaUser, FaUserShield, FaStore, FaSignOutAlt, FaChevronDown } from "react-icons/fa";
 import Sidebar from '../components/Sidebar';
 
 const Products = () => {
@@ -41,6 +41,9 @@ const Products = () => {
   ];
 
   const publicKey = "pk_test_80cd454009d341493a2268547cf40ef0ad5a12c8";
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -70,6 +73,8 @@ const Products = () => {
       try {
         const productsSnapshot = await getDocs(collection(db, "products"));
         const items = productsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        console.log('Fetched products:', items);
+        console.log('Product categories:', [...new Set(items.map(p => p.category))]);
         setProducts(items);
         setFilteredProducts(items);
       } catch (err) {
@@ -81,12 +86,14 @@ const Products = () => {
   }, []);
 
   useEffect(() => {
+    console.log('Filtering products - Category:', selectedCategory, 'Products count:', products.length);
     const filtered = products.filter(
       (product) =>
         (selectedCategory === "All" || product.category === selectedCategory) &&
         product.price <= priceRange &&
         (product.name?.toLowerCase().includes(searchQuery.toLowerCase()) || "")
     );
+    console.log('Filtered products count:', filtered.length);
     setFilteredProducts(filtered);
   }, [selectedCategory, priceRange, products, searchQuery]);
 
@@ -136,6 +143,7 @@ const Products = () => {
   }, [showSidebarCategories]);
 
   function handleSidebarCategorySelect(cat) {
+    console.log('Category selected:', cat);
     setSelectedCategory(cat);
     setShowSidebarCategories(false);
   }
@@ -184,7 +192,55 @@ const Products = () => {
         isPartnerStore={isPartnerStore}
         goToAdminDashboard={goToAdminDashboard}
         handlePartnerStoreClick={handlePartnerStoreClick}
+        onCategorySelect={handleSidebarCategorySelect}
+        selectedCategory={selectedCategory}
+        // onSearchClick removed
       />
+
+      {/* Header Section */}
+      <div className="header-container">
+        {searchOpen && (
+          <div className="header-search-bar header-search-bar-top">
+            <input
+              ref={searchInputRef}
+              className="search-input"
+              type="text"
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onBlur={() => setSearchOpen(false)}
+              onKeyDown={e => { if (e.key === 'Escape') setSearchOpen(false); }}
+              autoFocus
+            />
+          </div>
+        )}
+        <button className="search-icon-btn" onClick={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current && searchInputRef.current.focus(), 50); }} aria-label="Search">
+          <FaSearch size={20} />
+        </button>
+        {user && (
+          <div className="header-profile" tabIndex={0} onBlur={() => setProfileDropdownOpen(false)}>
+            <div className="header-profile-main" onClick={() => setProfileDropdownOpen(v => !v)}>
+              <span className="header-profile-avatar">
+                {(user.displayName ? user.displayName[0] : user.email[0]).toUpperCase()}
+              </span>
+              <span className="header-profile-name desktop-only">
+                {user.displayName || user.email}
+              </span>
+              <span className="header-profile-arrow">
+                <FaChevronDown style={{ fontSize: '1em' }} />
+              </span>
+            </div>
+            <div className={`header-profile-dropdown${profileDropdownOpen ? ' open' : ''}`}>
+              <span className="header-profile-name mobile-only">
+                {user.displayName || user.email}
+              </span>
+              <button className="header-profile-logout mobile-only" onClick={async () => { await signOut(auth); navigate("/"); }}>
+                Log out
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Main Content Layout */}
       <div className="main-content">
