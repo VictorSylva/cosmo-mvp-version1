@@ -738,8 +738,8 @@ body, html {
   overflow: visible !important;
 }
 .sidebar-logo {
-  width: 32px;
-  height: 32px;
+  width: 56px;
+  height: 56px;
   margin-bottom: 18px;
   cursor: pointer;
   display: flex;
@@ -747,8 +747,8 @@ body, html {
   justify-content: center;
 }
 .sidebar-logo img {
-  width: 28px;
-  height: 28px;
+  width: 52px;
+  height: 52px;
   object-fit: contain;
   border-radius: 12px;
 }
@@ -880,13 +880,13 @@ body, html {
     width: 56px;
   }
   .sidebar-logo {
-    width: 36px;
-    height: 36px;
+    width: 56px;
+    height: 56px;
     margin-bottom: 18px;
   }
   .sidebar-logo img {
-    width: 32px;
-    height: 32px;
+    width: 52px;
+    height: 52px;
   }
   .sidebar-icons button span {
     display: none;
