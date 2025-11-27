@@ -1,7 +1,8 @@
 // src/pages/Login.js
 import React, { useState } from "react";
-import { auth } from "../firebase/firebaseConfig";
+import { auth, db } from "../firebase/firebaseConfig";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import "../styles/Login.css";
 
@@ -9,16 +10,42 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate("/products");
+      // Sign in with Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Check user role in Firestore
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        
+        // Redirect based on user role
+        if (userData.role === 'admin') {
+          navigate("/admin/dashboard");
+        } else if (userData.isPartnerStore) {
+          navigate("/partner/dashboard");
+        } else {
+          navigate("/products");
+        }
+      } else {
+        // If no user document exists, treat as regular user
+        navigate("/products");
+      }
     } catch (err) {
       setError(err.message);
       alert("Login failed. Please check your credentials.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -34,6 +61,7 @@ const Login = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            disabled={isLoading}
           />
           <input
             type="password"
@@ -41,8 +69,11 @@ const Login = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            disabled={isLoading}
           />
-          <button type="submit">Login</button>
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? 'Logging in...' : 'Login'}
+          </button>
       </form>
         <p>
           Don't have an account?{" "}

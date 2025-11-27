@@ -23,6 +23,92 @@
   margin-bottom: 20px;
 }
 
+/* Subscription Status */
+.subscription-status {
+  margin-bottom: 20px;
+}
+
+.subscription-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border: 2px solid transparent;
+}
+
+.subscription-card.active {
+  background: linear-gradient(135deg, #d4edda, #c3e6cb);
+  border-color: #28a745;
+}
+
+.subscription-card.inactive {
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  border-color: #ffc107;
+}
+
+.subscription-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.plan-status {
+  margin: 0 0 5px 0;
+  font-size: 1rem;
+}
+
+.plan-name {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.plan-days {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-left: 8px;
+}
+
+.storage-info {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.limit-warning {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+.upgrade-button {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+}
+
+.upgrade-button:hover {
+  background: linear-gradient(135deg, #2980b9, #1f4e79);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+}
+
+.upgrade-button:active {
+  transform: translateY(0);
+}
+
 .stat-card {
   padding: 15px;
   border-radius: 8px;

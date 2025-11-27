@@ -2,69 +2,157 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 🔐 Users can read/write only their own user profile
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Helper function to check if user is partner store
+    function isPartnerStore() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isPartnerStore == true;
+    }
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Users collection
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId || isAdmin()
+      );
+      // Allow authenticated users to list users for transfers
+      allow list: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAdmin();
     }
 
-    // 🔐 Users can access their wallet only
+    // Wallet subcollection - FIXED: Allow transfers and partner store operations
     match /users/{userId}/wallet/{documentId} {
-      // Allow users to read and write their own wallet
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // 🛒 Publicly readable product catalog
-    match /products/{productId} {
-      allow read: if true;
-      // 🔐 Only admin users can write/update/delete products
-      allow write: if request.auth != null && request.auth.token.admin == true;
-    }
-
-    // ✅ Redemption Requests - written by CosmoCart system, partner store, or the user
-    match /redemptions/{redemptionId} {
-      // Any authenticated user can create a redemption record
-      allow create: if request.auth != null;
-
-      // Authenticated users can read their own redemptions
-      allow read: if request.auth != null;
-
-      // Only partner or admin can update/delete redemptions
-      allow update, delete: if request.auth != null && (
-        request.auth.token.partner == true || request.auth.token.admin == true
+      // Users can read and write their own wallet
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      // Admins and partner stores can read for processing redemptions
+      allow read: if isAdmin() || isPartnerStore();
+      // Allow authenticated users to list wallets (for transfers and redemptions)
+      allow list: if isAuthenticated();
+      // Allow users to update their own wallets and partner stores to update for redemptions
+      allow update: if isAuthenticated() && (
+        request.auth.uid == userId || isPartnerStore()
+      );
+      // Partner stores can delete when confirming redemption
+      allow delete: if isAuthenticated() && isPartnerStore();
+      // Allow users to create transfer entries in other users' wallets
+      allow create: if isAuthenticated() && (
+        // User creating in their own wallet
+        request.auth.uid == userId ||
+        // User creating transfer entry in recipient's wallet (for transfers)
+        (request.auth.uid != userId && request.resource.data.transferredFrom == request.auth.uid && request.resource.data.transferType == 'received') ||
+        // User creating sent transfer entry in their own wallet (for transfer history)
+        (request.auth.uid == userId && request.resource.data.transferType == 'sent')
       );
     }
 
-    // Optional: Admins can access a secure collection
+    // Products collection
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Payments collection - FIXED: Allow partner stores to create payments
+    match /payments/{paymentId} {
+      allow read, write: if isAdmin();
+      // Partner stores can read their own payments
+      allow read: if isAuthenticated() && isPartnerStore() &&
+        (resource.data.partnerID == request.auth.uid || resource.data.partnerId == request.auth.uid);
+      // Partner stores can create payment records
+      allow create: if isAuthenticated() && isPartnerStore();
+    }
+
+    // Redemptions collection - FIXED: Allow partner stores to read/update redemptions
+    match /redemptions/{redemptionId} {
+      allow create: if isAuthenticated();
+      
+      // Users can read their own redemptions, admins can read all
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin() ||
+        isPartnerStore()
+      );
+      
+      // Partner stores and admins can update redemptions
+      allow update: if isAuthenticated() && (
+        isPartnerStore() || isAdmin()
+      );
+      
+      // Only admins can delete
+      allow delete: if isAdmin();
+    }
+
+    // Partner store prices collection - FIXED: Support both document ID and field-based access
+    match /partner_store_prices/{priceId} {
+      // Allow reads by document ID or field-based queries
+      allow read: if isAuthenticated() && (
+        // Document ID starts with user's UID (for direct reads)
+        (isPartnerStore() && priceId.matches(request.auth.uid + '_.*')) ||
+        // Field-based access (for queries with where("partnerID", ...))
+        (isPartnerStore() && resource.data.partnerID == request.auth.uid) ||
+        // Also support partnerId field for backward compatibility
+        (isPartnerStore() && resource.data.partnerId == request.auth.uid) ||
+        isAdmin()
+      );
+      
+      // Write access: Check both document ID format AND partnerID field
+      allow create: if isAuthenticated() && isPartnerStore() && (
+        priceId.matches(request.auth.uid + '_.*') ||
+        request.resource.data.partnerID == request.auth.uid
+      );
+      
+      allow update: if isAuthenticated() && isPartnerStore() && (
+        priceId.matches(request.auth.uid + '_.*') ||
+        resource.data.partnerID == request.auth.uid
+      );
+      
+      // Admins can write all
+      allow write: if isAdmin();
+      
+      // Allow list queries for partner stores
+      allow list: if isAuthenticated() && isPartnerStore();
+    }
+
+    // Subscriptions collection
+    match /subscriptions/{subscriptionId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow write: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+    }
+
+    // Admin data collection
     match /adminData/{docId} {
-      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      allow read, write: if isAdmin();
+    }
+
+    // Analytics collection
+    match /analytics/{docId} {
+      allow read, write: if isAdmin();
+      allow read: if isAuthenticated() && isPartnerStore() &&
+        (resource.data.partnerId == request.auth.uid || resource.data.partnerID == request.auth.uid);
+    }
+
+    // Partner stores collection
+    match /partnerStores/{storeId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == storeId || isAdmin()
+      );
+      allow write: if isAuthenticated() && (
+        request.auth.uid == storeId || isAdmin()
+      );
     }
   }
 }
-
-
-
-// rules_version = '2';
-// service cloud.firestore {
-//   match /databases/{database}/documents {
-//     // Ensure the user can access their own wallet
-//     match /users/{userId}/wallet/{document=**} {
-//       allow read, write: if request.auth != null && request.auth.uid == userId;
-//     }
-//     // Optionally, secure other collections (e.g., products) as needed
-//     match /products/{productId} {
-//       allow read: if true;
-//     }
-//   }
-// }
-
-
-
-// // rules_version = '2';
-
-// // service cloud.firestore {
-// //   match /databases/{database}/documents {
-// //     match /{document=**} {
-// //       allow read, write: if request.time < timestamp.date(2025, 2, 12);
-// //     }
-// //   }
-// // }

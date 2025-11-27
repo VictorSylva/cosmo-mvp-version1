@@ -8,9 +8,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import "../styles/Products.css";
 import CosmoCartLogo from "../assets/cosmocart-logo.png"; // Add your logo
 import { useCart } from '../context/CartContext'; // Import useCart hook
+import { useSubscription } from '../contexts/SubscriptionContext';
 import Masonry from "react-masonry-css";
 import { FaHome, FaSearch, FaThLarge, FaShoppingCart, FaWallet, FaUser, FaUserShield, FaStore, FaSignOutAlt, FaChevronDown } from "react-icons/fa";
 import Sidebar from '../components/Sidebar';
+import SubscriptionPlans from '../components/SubscriptionPlans';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -24,7 +26,9 @@ const Products = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const { cartItems, addToCart } = useCart(); // Consume cart context
+  const { getSubscriptionInfo } = useSubscription();
   const [showSidebarSearch, setShowSidebarSearch] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [sidebarSearchValue, setSidebarSearchValue] = useState("");
   const sidebarSearchRef = useRef(null);
   const [showSidebarCategories, setShowSidebarCategories] = useState(false);
@@ -194,29 +198,12 @@ const Products = () => {
         handlePartnerStoreClick={handlePartnerStoreClick}
         onCategorySelect={handleSidebarCategorySelect}
         selectedCategory={selectedCategory}
-        // onSearchClick removed
+        onSearchSubmit={(value) => setSearchQuery(value)}
       />
 
       {/* Header Section */}
       <div className="header-container">
-        {searchOpen && (
-          <div className="header-search-bar header-search-bar-top">
-            <input
-              ref={searchInputRef}
-              className="search-input"
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              onBlur={() => setSearchOpen(false)}
-              onKeyDown={e => { if (e.key === 'Escape') setSearchOpen(false); }}
-              autoFocus
-            />
-          </div>
-        )}
-        <button className="search-icon-btn" onClick={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current && searchInputRef.current.focus(), 50); }} aria-label="Search">
-          <FaSearch size={20} />
-        </button>
+        <img src={CosmoCartLogo} alt="CosmoCart" className="header-logo" />
         {user && (
           <div className="header-profile" tabIndex={0} onBlur={() => setProfileDropdownOpen(false)}>
             <div className="header-profile-main" onClick={() => setProfileDropdownOpen(v => !v)}>
@@ -261,10 +248,7 @@ const Products = () => {
                     key={product.id}
                     whileHover={{ scale: 1.05 }}
                     className={`product-card ${isInCart ? 'in-cart' : ''}`}
-                    onClick={() => {
-                      addToCart(product);
-                      showNotification(`Added ${product.name} to cart.`);
-                    }}
+                    onClick={() => navigate(`/products/${product.id}`)}
                     id={`product-${product.id}`}
                   >
                     <div className="product-image-container">
@@ -276,6 +260,26 @@ const Products = () => {
                       <div className="product-overlay">
                         <div className="product-name">{product.name}</div>
                         <div className="product-price">₦{product.price.toLocaleString()}</div>
+                        <button
+                          className="add-to-cart-overlay-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            try {
+                              const subscriptionInfo = getSubscriptionInfo();
+                              addToCart(product, subscriptionInfo);
+                              showNotification(`Added ${product.name} to cart.`);
+                            } catch (error) {
+                              if (error.message === 'WALLET_LIMIT_EXCEEDED') {
+                                setShowSubscriptionModal(true);
+                                showNotification("❌ Wallet limit exceeded. Please subscribe to add more items.");
+                              } else {
+                                showNotification("❌ Failed to add item to cart. Please try again.");
+                              }
+                            }
+                          }}
+                        >
+                          {isInCart ? '✓ Added' : '+ Add to Cart'}
+                        </button>
                       </div>
                     </div>
                   </motion.div>
@@ -285,6 +289,14 @@ const Products = () => {
           )}
         </section>
       </div>
+
+      {/* Subscription Modal */}
+      {showSubscriptionModal && (
+        <SubscriptionPlans 
+          onClose={() => setShowSubscriptionModal(false)}
+          showUpgradePrompt={true}
+        />
+      )}
     </div>
   );
 };

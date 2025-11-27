@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase/firebaseConfig';
 import { useNavigate } from 'react-router-dom';
+import { exportRetrievalsToCSV, exportRetrievalSummary } from '../../services/exportService';
 
 const CompletedRetrievals = () => {
   const [retrievals, setRetrievals] = useState([]);
@@ -55,14 +56,14 @@ const CompletedRetrievals = () => {
         q = query(
           retrievalsRef,
           where('confirmedByPartner', '==', userId),
-          where('status', '==', 'confirmed'),
+          where('status', 'in', ['confirmed', 'completed']),
           orderBy('createdAt', 'desc')
         );
       } else {
         // If admin, show all retrievals
         q = query(
           retrievalsRef,
-          where('status', '==', 'confirmed'),
+          where('status', 'in', ['confirmed', 'completed']),
           orderBy('createdAt', 'desc')
         );
       }
@@ -151,6 +152,58 @@ const CompletedRetrievals = () => {
       }}>
         {isPartnerView ? 'Your Completed Retrievals' : 'All Completed Retrievals'}
       </h1>
+
+      {/* Export Buttons */}
+      {!isPartnerView && retrievals.length > 0 && (
+        <div style={{
+          display: 'flex',
+          gap: '12px',
+          marginBottom: '20px',
+          flexWrap: 'wrap'
+        }}>
+          <button
+            onClick={() => exportRetrievalsToCSV(retrievals)}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#2563eb'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#3b82f6'}
+          >
+            📊 Export All ({retrievals.length})
+          </button>
+          
+          <button
+            onClick={() => exportRetrievalSummary(retrievals)}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#059669'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#10b981'}
+          >
+            📈 Export Summary
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '20px' }}>Loading...</div>

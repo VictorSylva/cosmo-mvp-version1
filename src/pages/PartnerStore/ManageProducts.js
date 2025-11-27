@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../../firebase/firebaseConfig';
+import { collection, getDocs, doc, getDoc, setDoc, query, where } from 'firebase/firestore';
+import { db, auth } from '../../firebase/firebaseConfig';
 import { usePartnerStore } from '../../contexts/PartnerStoreContext';
 import PartnerLayout from '../../components/PartnerDashboard/PartnerLayout';
 import '../../styles/PartnerStoreDashboard.css';
@@ -16,18 +16,34 @@ const ManageProducts = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        // Fetch all products
         const productsSnapshot = await getDocs(collection(db, 'products'));
-        const productsData = await Promise.all(
-          productsSnapshot.docs.map(async (productDoc) => {
-            const partnerPriceDoc = await getDoc(doc(db, 'partner_store_prices', `${partnerData.id}_${productDoc.id}`));
-            return {
-              id: productDoc.id,
-              ...productDoc.data(),
-              partnerPrice: partnerPriceDoc.exists() ? partnerPriceDoc.data().price : productDoc.data().price
-            };
-          })
+        const productsData = productsSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        // Fetch partner prices using a query
+        const priceQuery = query(
+          collection(db, 'partner_store_prices'),
+          where('partnerID', '==', partnerData.id)
         );
-        setProducts(productsData);
+        const priceSnapshot = await getDocs(priceQuery);
+        
+        // Create a map of productId -> price
+        const priceData = priceSnapshot.docs.reduce((acc, doc) => {
+          const data = doc.data();
+          acc[data.productId] = data.price;
+          return acc;
+        }, {});
+
+        // Combine products with partner prices
+        const updatedProducts = productsData.map((product) => ({
+          ...product,
+          partnerPrice: priceData[product.id] ?? product.price,
+        }));
+
+        setProducts(updatedProducts);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -46,34 +62,91 @@ const ManageProducts = () => {
 
   const handlePriceUpdate = async (productId) => {
     const newPrice = newPrices[productId];
-    if (!newPrice || isNaN(newPrice)) return;
+    if (!newPrice || isNaN(newPrice)) {
+      setError('Please enter a valid price');
+      return;
+    }
+    
+    if (!partnerData || !partnerData.id) {
+      setError('Partner data not loaded');
+      return;
+    }
+    
     try {
-      await setDoc(doc(db, 'partner_store_prices', `${partnerData.id}_${productId}`), {
+      if (!auth.currentUser) {
+        setError('User not authenticated');
+        return;
+      }
+      
+      const priceDocId = `${partnerData.id}_${productId}`;
+      console.log('=== PRICE UPDATE DEBUG ===');
+      console.log('Current User UID:', auth.currentUser.uid);
+      console.log('Partner Data ID:', partnerData.id);
+      console.log('Document ID format:', priceDocId);
+      console.log('Expected format:', auth.currentUser.uid + '_' + productId);
+      console.log('Do they match?', priceDocId === (auth.currentUser.uid + '_' + productId));
+      console.log('Product ID:', productId);
+      console.log('New Price:', newPrice);
+      
+      // First check if the user is a partner store
+      const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+      const userData = userDoc.data();
+      console.log('Is Partner Store?', userData?.isPartnerStore);
+      
+      await setDoc(doc(db, 'partner_store_prices', priceDocId), {
         price: parseFloat(newPrice),
+        partnerID: partnerData.id,
+        productId: productId,
         updatedAt: new Date()
-      });
+      }, { merge: true });
+      
+      console.log('Price updated successfully!');
+      
+      // Update the products state
       setProducts(products.map(product =>
         product.id === productId
           ? { ...product, partnerPrice: parseFloat(newPrice) }
           : product
       ));
+      
+      // Clear the input
       setNewPrices({ ...newPrices, [productId]: '' });
+      
+      // Show success message
       setSuccessMessages((prev) => ({ ...prev, [productId]: 'Price updated!' }));
+      setError(null);
+      
       setTimeout(() => {
         setSuccessMessages((prev) => ({ ...prev, [productId]: '' }));
-      }, 2000);
+      }, 3000);
     } catch (err) {
-      setError(err.message);
+      console.error('=== PRICE UPDATE ERROR ===');
+      console.error('Error code:', err.code);
+      console.error('Error message:', err.message);
+      console.error('Full error:', err);
+      setError(`Failed to update price: ${err.message}`);
+      alert(`Error updating price: ${err.message}\n\nCheck console for details.`);
     }
   };
 
   if (loading) return <div className="loading-text">Loading...</div>;
-  if (error) return <div className="error-message">Error: {error}</div>;
 
   return (
     <PartnerLayout>
       <div className="manage-products-container">
         <h1 className="manage-products-title">Manage Products</h1>
+        {error && (
+          <div className="error-message" style={{ 
+            color: '#dc3545', 
+            padding: '10px', 
+            marginBottom: '20px', 
+            backgroundColor: '#f8d7da', 
+            border: '1px solid #f5c6cb',
+            borderRadius: '4px'
+          }}>
+            {error}
+          </div>
+        )}
         <div className="products-grid">
           {products.map((product) => (
             <div className="product-card" key={product.id}>

@@ -1,21 +1,25 @@
 import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from '../context/CartContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 import CosmoCartLogo from "../assets/cosmocart-logo.png";
-import { FaHome, FaSearch, FaThLarge, FaShoppingCart, FaWallet, FaUser, FaUserShield, FaStore, FaSignOutAlt } from "react-icons/fa";
+import { FaSearch, FaThLarge, FaShoppingCart, FaWallet, FaUser, FaUserShield, FaStore, FaSignOutAlt, FaBars, FaChevronLeft, FaCrown } from "react-icons/fa";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase/firebaseConfig";
+import SubscriptionPlans from './SubscriptionPlans';
 import "../styles/Products.css";
 
-const Sidebar = ({ isAdmin, isPartnerStore, goToAdminDashboard, handlePartnerStoreClick, onSearchClick, onCategorySelect, selectedCategory }) => {
+const Sidebar = ({ isAdmin, isPartnerStore, goToAdminDashboard, handlePartnerStoreClick, onSearchSubmit, onCategorySelect, selectedCategory }) => {
   const navigate = useNavigate();
   const { cartItems } = useCart();
+  const { getSubscriptionInfo } = useSubscription();
   console.log('Sidebar cartItems:', cartItems); // DEBUG
   const [showSidebarSearch, setShowSidebarSearch] = useState(false);
   const [sidebarSearchValue, setSidebarSearchValue] = useState("");
   const sidebarSearchRef = useRef(null);
   const [showSidebarCategories, setShowSidebarCategories] = useState(false);
   const sidebarCategoriesRef = useRef(null);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const categories = [
     "All",
     "Grains",
@@ -26,6 +30,7 @@ const Sidebar = ({ isAdmin, isPartnerStore, goToAdminDashboard, handlePartnerSto
     "Starchy Food",
     "Hydrations"
   ];
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Calculate total quantity of items in cart
   const totalCartQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -77,45 +82,74 @@ const Sidebar = ({ isAdmin, isPartnerStore, goToAdminDashboard, handlePartnerSto
 
   function handleSidebarSearchSubmit(e) {
     e.preventDefault();
-    // This should be handled by parent if needed
+    if (onSearchSubmit) {
+      onSearchSubmit(sidebarSearchValue);
+    }
     setShowSidebarSearch(false);
   }
 
   return (
-    <nav className="pinterest-sidebar">
+    <nav className={`pinterest-sidebar${mobileSidebarOpen ? ' mobile-expanded' : ''}`}>
       <div className="sidebar-logo-row">
-      <div className="sidebar-logo" onClick={() => navigate("/")}> 
-        <img src={CosmoCartLogo} alt="Logo" />
-        </div>
-        {/* Search icon removed from sidebar */}
+        {/* Mobile toggle button */}
+        <button
+          className="sidebar-mobile-toggle"
+          aria-label={mobileSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          onClick={() => setMobileSidebarOpen((open) => !open)}
+        >
+          {mobileSidebarOpen ? <FaChevronLeft /> : <FaBars />}
+        </button>
       </div>
       <div className="sidebar-icons">
-        <button aria-label="Home" onClick={() => navigate("/")}> <FaHome /> <span className="sidebar-tooltip">Home</span> </button>
-        <button aria-label="Categories" onClick={() => setShowSidebarCategories(true)}> <FaThLarge /> <span className="sidebar-tooltip">Categories</span> </button>
-        <button aria-label="Admin Dashboard" disabled={!isAdmin} style={{opacity: isAdmin ? 1 : 0.7, pointerEvents: isAdmin ? 'auto' : 'none'}} onClick={goToAdminDashboard}> <FaUserShield /> <span className="sidebar-tooltip">Admin</span> </button>
-        <button aria-label="Partner Store Dashboard" disabled={!isPartnerStore} style={{opacity: isPartnerStore ? 1 : 0.7, pointerEvents: isPartnerStore ? 'auto' : 'none'}} onClick={handlePartnerStoreClick}> <FaStore /> <span className="sidebar-tooltip">Store</span> </button>
+        <button aria-label="Search" onClick={() => setShowSidebarSearch(true)}> <FaSearch /> <span className="sidebar-tooltip">Search</span> <span className="sidebar-label">Search</span> </button>
+        <button aria-label="Categories" onClick={() => setShowSidebarCategories(true)}> <FaThLarge /> <span className="sidebar-tooltip">Categories</span> <span className="sidebar-label">Categories</span> </button>
+        {isAdmin && (
+          <button aria-label="Admin Dashboard" onClick={goToAdminDashboard}> <FaUserShield /> <span className="sidebar-tooltip">Admin</span> <span className="sidebar-label">Admin</span> </button>
+        )}
+        {isPartnerStore && (
+          <button aria-label="Partner Store Dashboard" onClick={handlePartnerStoreClick}> <FaStore /> <span className="sidebar-tooltip">Store</span> <span className="sidebar-label">Store</span> </button>
+        )}
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <button aria-label="Cart" onClick={() => navigate("/cart")}> 
             <FaShoppingCart />
             <span className="sidebar-tooltip">Cart</span>
+            <span className="sidebar-label">Cart</span>
           </button>
           {totalCartQuantity > 0 && (
             <span className="cart-badge" style={{ marginLeft: 8 }}>{totalCartQuantity}</span>
           )}
         </div>
-        <button aria-label="Wallet" onClick={() => navigate("/wallet")}> <FaWallet /> <span className="sidebar-tooltip">Wallet</span> </button>
-        <button aria-label="Logout" onClick={async () => { await signOut(auth); navigate("/"); }}> <FaSignOutAlt /> <span className="sidebar-tooltip">Logout</span> </button>
+        <button aria-label="Wallet" onClick={() => navigate("/wallet")}> <FaWallet /> <span className="sidebar-tooltip">Wallet</span> <span className="sidebar-label">Wallet</span> </button>
+        <button 
+          aria-label="Subscription" 
+          onClick={() => setShowSubscriptionModal(true)}
+          className={`subscription-button ${getSubscriptionInfo()?.isActive ? 'active' : ''}`}
+        > 
+          <FaCrown /> 
+          <span className="sidebar-tooltip">
+            {getSubscriptionInfo()?.isActive ? 'Manage Subscription' : 'Upgrade Plan'}
+          </span> 
+          <span className="sidebar-label">
+            {getSubscriptionInfo()?.isActive ? 'Premium' : 'Upgrade'}
+          </span> 
+        </button>
+        <button aria-label="Logout" onClick={async () => { await signOut(auth); navigate("/"); }}> <FaSignOutAlt style={{ color: 'red' }} /> <span className="sidebar-tooltip">Logout</span> <span className="sidebar-label">Logout</span> </button>
       </div>
       {showSidebarSearch && (
-        <form className="sidebar-search-float" ref={sidebarSearchRef} onSubmit={handleSidebarSearchSubmit}>
+        <div className="sidebar-search-float" ref={sidebarSearchRef}>
           <input
             autoFocus
             type="text"
             placeholder="Search products..."
             value={sidebarSearchValue}
-            onChange={e => setSidebarSearchValue(e.target.value)}
+            onChange={e => {
+              setSidebarSearchValue(e.target.value);
+              if (onSearchSubmit) {
+                onSearchSubmit(e.target.value);
+              }
+            }}
           />
-        </form>
+        </div>
       )}
       {showSidebarCategories && (
         <div className="sidebar-categories-float" ref={sidebarCategoriesRef}>
@@ -129,6 +163,14 @@ const Sidebar = ({ isAdmin, isPartnerStore, goToAdminDashboard, handlePartnerSto
             </button>
           ))}
         </div>
+      )}
+
+      {/* Subscription Modal */}
+      {showSubscriptionModal && (
+        <SubscriptionPlans 
+          onClose={() => setShowSubscriptionModal(false)}
+          showUpgradePrompt={false}
+        />
       )}
     </nav>
   );

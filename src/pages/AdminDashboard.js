@@ -4,7 +4,8 @@ import { collection, getDocs, doc, updateDoc, query, where, orderBy, getDoc } fr
 import { db, auth } from '../firebase/firebaseConfig';
 import { signOut } from 'firebase/auth';
 import '../styles/AdminDashboard.css';
-import { FaStore, FaMoneyBillWave, FaBoxes } from 'react-icons/fa';
+import { FaStore, FaMoneyBillWave, FaBoxes, FaShoppingCart } from 'react-icons/fa';
+import RetrievalExportManager from '../components/RetrievalExportManager';
 
 const AdminDashboard = () => {
   const [payments, setPayments] = useState([]);
@@ -107,7 +108,7 @@ const AdminDashboard = () => {
       const retrievalsRef = collection(db, 'redemptions');
       const q = query(
         retrievalsRef,
-        where('status', '==', 'confirmed'),
+        where('status', 'in', ['confirmed', 'completed']),
         orderBy('createdAt', 'desc')
       );
       
@@ -300,6 +301,16 @@ const AdminDashboard = () => {
             Manage partner store registrations and details
           </p>
             </div>
+
+        <div className="section-card" onClick={() => navigate('/admin/products')}>
+          <div className="section-icon">
+            <FaShoppingCart />
+                  </div>
+          <h2 className="section-title">Product Management</h2>
+          <p className="section-description">
+            Add, edit, and manage products in the catalog
+          </p>
+            </div>
       </div>
 
       <div className="users-list">
@@ -317,6 +328,12 @@ const AdminDashboard = () => {
           </ul>
         )}
       </div>
+
+      {/* Export Manager for Completed Retrievals */}
+      <RetrievalExportManager 
+        retrievals={retrievals} 
+        stores={users}
+      />
     </div>
   );
 };

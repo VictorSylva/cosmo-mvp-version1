@@ -1,15 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 import { PaystackButton } from "react-paystack";
 import { motion, AnimatePresence } from "framer-motion";
+import SubscriptionPlans from '../components/SubscriptionPlans';
 import "../styles/Cart.css"; // We will create this CSS file next
 import CosmoCartLogo from "../assets/cosmocart-logo.png";
 
 const Cart = () => {
   const navigate = useNavigate();
-  const { cartItems, removeFromCart, updateQuantity, calculateCartTotal, handleBulkPrepay, user, loadingUser } = useCart();
-  const [notification, setNotification] = React.useState(null); // Local notification for cart page
+  const { cartItems, removeFromCart, updateQuantity, calculateCartTotal, handleBulkPrepay, user, loadingUser, walletItemCount } = useCart();
+  const { getSubscriptionInfo, subscription, loading: subscriptionLoading } = useSubscription();
+  const [notification, setNotification] = useState(null);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const publicKey = "pk_test_80cd454009d341493a2268547cf40ef0ad5a12c8"; // Get from environment variables in a real app
 
@@ -27,8 +31,8 @@ const Cart = () => {
     }
   }, [user, loadingUser, navigate]);
 
-  if (loadingUser) {
-    return <div>Loading user...</div>; // Or a loading spinner
+  if (loadingUser || subscriptionLoading) {
+    return <div>Loading...</div>; // Or a loading spinner
   }
 
   if (!user) {
@@ -92,24 +96,94 @@ const Cart = () => {
               <p>Total Items: {cartItems.reduce((total, item) => total + item.quantity, 0)}</p>
               <p className="cart-total">Total: ₦{calculateCartTotal().toLocaleString()}</p>
               
-              <PaystackButton
-                className="paystack-button"
-                email={user?.email}
-                amount={calculateCartTotal() * 100}
-                metadata={{ name: user?.displayName, phone: "N/A" }}
-                publicKey={publicKey}
-                text="Prepay Now"
-                onSuccess={(reference) => { // Use a wrapper function to show notification and navigate
-                  handleBulkPrepay(reference);
-                  showNotification(`✅ Payment successful! Prepaid for ${cartItems.reduce((total, item) => total + item.quantity, 0)} items.`);
-                  navigate("/wallet");
-                }}
-                onClose={() => showNotification("ℹ️ Payment cancelled.")}
-              />
+              {(() => {
+                const subscriptionInfo = getSubscriptionInfo();
+                const totalNewItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+                const newTotalItems = walletItemCount + totalNewItems;
+                
+                
+                // If user has free plan and would exceed 1 item limit, show subscription modal instead
+                // Also check if subscription is not active (fallback to subscription object)
+                const isSubscriptionActive = subscriptionInfo?.isActive || subscription?.isActive;
+                if (!isSubscriptionActive && (walletItemCount >= 1 || newTotalItems > 1)) {
+                  return (
+                    <button
+                      className="paystack-button subscription-redirect"
+                      onClick={() => setShowSubscriptionModal(true)}
+                    >
+                      Subscribe to Continue
+                    </button>
+                  );
+                }
+                
+                return (
+                  <PaystackButton
+                    className="paystack-button"
+                    email={user?.email}
+                    amount={calculateCartTotal() * 100}
+                    metadata={{ name: user?.displayName, phone: "N/A" }}
+                    publicKey={publicKey}
+                    text="Prepay Now"
+                    onSuccess={async (reference) => {
+                      try {
+                        await handleBulkPrepay(reference, subscriptionInfo);
+                        showNotification(`✅ Payment successful! Prepaid for ${cartItems.reduce((total, item) => total + item.quantity, 0)} items.`);
+                        navigate("/wallet");
+                      } catch (error) {
+                        if (error.message === 'WALLET_LIMIT_EXCEEDED') {
+                          setShowSubscriptionModal(true);
+                          showNotification("❌ Wallet limit exceeded. Please subscribe to store more items.");
+                        } else {
+                          showNotification("❌ Payment processing failed. Please try again.");
+                        }
+                      }
+                    }}
+                    onClose={() => showNotification("ℹ️ Payment cancelled.")}
+                  />
+                );
+              })()}
             </div>
           </div>
         )}
       </div>
+
+      {/* Subscription Modal */}
+      {showSubscriptionModal && (
+        <SubscriptionPlans 
+          onClose={() => setShowSubscriptionModal(false)}
+          showUpgradePrompt={true}
+        />
+      )}
+
+      {/* Wallet Limit Warning */}
+      {cartItems.length > 0 && (
+        <div className="wallet-limit-warning">
+          <div className="warning-content">
+            <p>
+              <strong>Wallet Status:</strong> {walletItemCount} items currently stored
+              {(() => {
+                const subscriptionInfo = getSubscriptionInfo();
+                const isSubscriptionActive = subscriptionInfo?.isActive || subscription?.isActive;
+                return !isSubscriptionActive;
+              })() && (
+                <span className="limit-text"> (Free plan: 1 item limit)</span>
+              )}
+            </p>
+            {(() => {
+              const subscriptionInfo = getSubscriptionInfo();
+              const isSubscriptionActive = subscriptionInfo?.isActive || subscription?.isActive;
+              return !isSubscriptionActive && (walletItemCount >= 1 || cartItems.length > 0);
+            })() && (
+              <button 
+                className="upgrade-button"
+                onClick={() => setShowSubscriptionModal(true)}
+              >
+                Upgrade to Unlimited Storage
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -14,6 +14,7 @@ import {
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebaseConfig';
 import './Navbar.css';
+import logo from '../../assets/cosmoPartner.png';
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -45,7 +46,7 @@ const Navbar = () => {
       <div className="navbar-container">
         {/* Logo and brand section */}
         <Link to="/partner/dashboard" className="navbar-brand">
-          CosmoCart Partner
+          <img src={logo} alt="Cosmo Partner Logo" className="navbar-logo" />
         </Link>
 
         {/* Desktop navigation */}

@@ -16,11 +16,11 @@ const AuthHome = () => {
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
         gap: '32px',
-        maxWidth: '900px',
+        maxWidth: '700px',
         margin: '0 auto',
         width: '100%'
       }}>
-        {/* Regular User Card */}
+        {/* Login Card */}
         <div style={{
           backgroundColor: 'white',
           borderRadius: '12px',
@@ -34,9 +34,9 @@ const AuthHome = () => {
         onMouseOver={e => e.currentTarget.style.transform = 'translateY(-4px)'}
         onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
         >
-          <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937', marginBottom: '16px' }}>Login as User</h2>
+          <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937', marginBottom: '16px' }}>Login</h2>
           <p style={{ fontSize: '16px', color: '#6b7280', marginBottom: '24px' }}>
-            Access your account and shop for groceries.
+            Access your account - works for all users, partners, and admins.
           </p>
           <button style={{
             backgroundColor: '#4f46e5',
@@ -53,45 +53,10 @@ const AuthHome = () => {
           onMouseOver={e => e.target.style.backgroundColor = '#4338ca'}
           onMouseOut={e => e.target.style.backgroundColor = '#4f46e5'}
           >
-            Login as User
+            Login
           </button>
         </div>
-        {/* Partner Store Card */}
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          padding: '36px',
-          textAlign: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-          transition: 'transform 0.2s',
-          cursor: 'pointer'
-        }}
-        onClick={() => navigate('/partner-login')}
-        onMouseOver={e => e.currentTarget.style.transform = 'translateY(-4px)'}
-        onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
-        >
-          <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937', marginBottom: '16px' }}>Login as Partner Store</h2>
-          <p style={{ fontSize: '16px', color: '#6b7280', marginBottom: '24px' }}>
-            Manage your store and process redemptions.
-          </p>
-          <button style={{
-            backgroundColor: '#059669',
-            color: 'white',
-            padding: '12px 28px',
-            borderRadius: '6px',
-            border: 'none',
-            fontSize: '16px',
-            fontWeight: 500,
-            cursor: 'pointer',
-            transition: 'background-color 0.2s'
-          }}
-          onClick={e => { e.stopPropagation(); navigate('/partner-login'); }}
-          onMouseOver={e => e.target.style.backgroundColor = '#047857'}
-          onMouseOut={e => e.target.style.backgroundColor = '#059669'}
-          >
-            Login as Partner
-          </button>
-        </div>
+
         {/* Signup Card */}
         <div style={{
           backgroundColor: 'white',
@@ -133,4 +98,4 @@ const AuthHome = () => {
   );
 };
 
-export default AuthHome; 
+export default AuthHome;

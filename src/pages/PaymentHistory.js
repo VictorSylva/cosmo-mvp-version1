@@ -15,7 +15,10 @@ const PaymentHistory = () => {
 
   useEffect(() => {
     if (partnerData?.id) {
+      console.log('Partner data:', partnerData);
       fetchPayments();
+    } else {
+      console.log('No partner data available');
     }
   }, [partnerData]);
 
@@ -24,25 +27,67 @@ const PaymentHistory = () => {
       setLoadingPayments(true);
       setPaymentError(null);
       
-      const paymentsRef = collection(db, "payments");
-      const q = query(
-        paymentsRef, 
-        where("partnerId", "==", partnerData.id),
-        orderBy("createdAt", "desc")
+      console.log('Fetching payments for partner ID:', partnerData.id);
+      
+      // First, let's get ALL payments to debug
+      const allPaymentsSnapshot = await getDocs(collection(db, "payments"));
+      console.log('Total payments in database:', allPaymentsSnapshot.docs.length);
+      
+      // Log all payment data to see what we have
+      allPaymentsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        console.log('Payment:', doc.id, {
+          partnerId: data.partnerId,
+          partnerID: data.partnerID,
+          productName: data.productName,
+          status: data.status
+        });
+      });
+      
+      // Query for payments with either partnerId or partnerID field
+      // Try both field names and combine results
+      const results1 = await getDocs(
+        query(collection(db, "payments"), where("partnerId", "==", partnerData.id))
       );
       
-      const querySnapshot = await getDocs(q);
+      const results2 = await getDocs(
+        query(collection(db, "payments"), where("partnerID", "==", partnerData.id))
+      );
       
-      const paymentsData = querySnapshot.docs.map(doc => {
+      console.log('Found payments with partnerId field:', results1.docs.length);
+      console.log('Found payments with partnerID field:', results2.docs.length);
+      
+      // Log the payment IDs we found
+      results1.docs.forEach(doc => console.log('Found payment (partnerId):', doc.id, doc.data()));
+      results2.docs.forEach(doc => console.log('Found payment (partnerID):', doc.id, doc.data()));
+      
+      // Combine results and remove duplicates
+      const allDocs = [...results1.docs, ...results2.docs];
+      const uniqueDocs = allDocs.filter((doc, index, self) =>
+        index === self.findIndex(d => d.id === doc.id)
+      );
+      
+      console.log('Unique payments after deduplication:', uniqueDocs.length);
+      
+      const paymentsData = uniqueDocs.map(doc => {
         const data = doc.data();
         return {
           id: doc.id,
           ...data,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          processedAt: data.processedAt ? new Date(data.processedAt) : null,
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt ? new Date(data.createdAt) : new Date()),
+          processedAt: data.processedAt ? (data.processedAt.toDate ? data.processedAt.toDate() : new Date(data.processedAt)) : null,
           completedAt: data.completedAt ? new Date(data.completedAt) : null
         };
       });
+      
+      // Sort by createdAt descending
+      paymentsData.sort((a, b) => {
+        const dateA = a.createdAt?.getTime ? a.createdAt.getTime() : 0;
+        const dateB = b.createdAt?.getTime ? b.createdAt.getTime() : 0;
+        return dateB - dateA;
+      });
+      
+      console.log('Final payments data:', paymentsData);
       
       setPayments(paymentsData);
       setLoadingPayments(false);
@@ -63,6 +108,25 @@ const PaymentHistory = () => {
   const formatDate = (date) => {
     if (!date) return 'N/A';
     return date.toLocaleString();
+  };
+
+  const getProcessedDisplay = (payment) => {
+    if (payment.processedAt) {
+      return { text: formatDate(payment.processedAt), class: '' };
+    }
+    
+    switch (payment.status) {
+      case 'pending':
+        return { text: 'Awaiting processing', class: 'pending' };
+      case 'approved':
+        return { text: 'Approved - Awaiting completion', class: 'approved' };
+      case 'rejected':
+        return { text: 'Rejected', class: 'rejected' };
+      case 'completed':
+        return { text: 'Completed', class: 'completed' };
+      default:
+        return { text: 'N/A', class: '' };
+    }
   };
 
   const getStatusClass = (status) => {
@@ -126,12 +190,25 @@ const PaymentHistory = () => {
                     <tr key={payment.id}>
                       <td data-label="Product">
                         <div className="payment-product-name">{payment.productName}</div>
+                        <div className="payment-product-quantity">
+                          {payment.quantity ? `Quantity: ${payment.quantity}` : 'Quantity: 1'}
+                        </div>
                         <div className="payment-product-id">ID: {payment.id}</div>
                       </td>
                       <td data-label="Amount">
-                        <div className="payment-amount">{formatCurrency(payment.finalPrice)}</div>
+                        <div className="payment-amount">
+                          {payment.quantity && payment.quantity > 1 
+                            ? `${formatCurrency(payment.unitFinalPrice || payment.finalPrice)} × ${payment.quantity} = ${formatCurrency(payment.finalPrice)}`
+                            : formatCurrency(payment.finalPrice)
+                          }
+                        </div>
                         <div className="payment-difference">
                           Difference: {formatCurrency(payment.priceDifference)}
+                          {payment.quantity && payment.quantity > 1 && (
+                            <div className="payment-unit-difference">
+                              (Unit diff: {formatCurrency(payment.unitPriceDifference || (payment.priceDifference / payment.quantity))})
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td data-label="Status">
@@ -143,7 +220,14 @@ const PaymentHistory = () => {
                         {formatDate(payment.createdAt)}
                       </td>
                       <td data-label="Processed">
-                        {formatDate(payment.processedAt)}
+                        {(() => {
+                          const display = getProcessedDisplay(payment);
+                          return (
+                            <span className={`payment-processed-display ${display.class}`}>
+                              {display.text}
+                            </span>
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))

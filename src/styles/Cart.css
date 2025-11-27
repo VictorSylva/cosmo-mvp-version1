@@ -22,7 +22,7 @@
 }
 
 .cart-logo {
-  height: 40px; /* Adjust size as needed */
+  height: 60px; /* Increased from 40px for bigger size */
 }
 
 .cart-header-buttons {
@@ -189,4 +189,111 @@
 .cart-summary .paystack-button {
   padding: 12px 20px;
   font-size: 18px;
+}
+
+.subscription-redirect {
+  background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+  color: white !important;
+  border: none !important;
+  padding: 12px 20px !important;
+  font-size: 18px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3) !important;
+}
+
+.subscription-redirect:hover {
+  background: linear-gradient(135deg, #c0392b, #a93226) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(231, 76, 60, 0.4) !important;
+}
+
+/* Wallet Limit Warning */
+.wallet-limit-warning {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+  z-index: 100;
+  max-width: 90%;
+  width: 400px;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.warning-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.warning-content p {
+  margin: 0;
+  font-size: 14px;
+  flex: 1;
+}
+
+.limit-text {
+  color: #ffeb3b;
+  font-weight: 600;
+}
+
+.upgrade-button {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.upgrade-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .wallet-limit-warning {
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    transform: none;
+    width: auto;
+    max-width: none;
+  }
+  
+  .warning-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+  
+  .upgrade-button {
+    width: 100%;
+  }
 } 
