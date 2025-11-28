@@ -42,8 +42,19 @@ const Login = () => {
         navigate("/products");
       }
     } catch (err) {
-      setError(err.message);
-      alert("Login failed. Please check your credentials.");
+      console.error("Login error:", err);
+      let errorMessage = "Login failed. Please check your credentials.";
+      
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        errorMessage = "Invalid email or password.";
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = "Too many failed attempts. Please try again later.";
+      } else if (err.code === 'auth/network-request-failed') {
+        errorMessage = "Network error. Please check your internet connection.";
+      }
+
+      setError(errorMessage);
+      window.showToast?.(errorMessage, "error");
     } finally {
       setIsLoading(false);
     }

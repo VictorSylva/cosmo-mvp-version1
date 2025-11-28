@@ -5,13 +5,11 @@ import {
   addDoc,
   serverTimestamp,
   doc,
-  deleteDoc,
   query,
   where,
   updateDoc,
   getDoc,
   onSnapshot,
-  orderBy,
 } from "firebase/firestore";
 import { db, auth } from "../firebase/firebaseConfig";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -53,6 +51,7 @@ const Wallet = () => {
   const [notificationCount, setNotificationCount] = useState(0);
   const [isNotificationIconOpen, setIsNotificationIconOpen] = useState(false);
   const [usePolling, setUsePolling] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
   const navigate = useNavigate();
   const { getSubscriptionInfo } = useSubscription();
 
@@ -69,28 +68,41 @@ const Wallet = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  // Fetch wallet items and detect new received items
+  // Subscribe to wallet updates (items, received list, sent history)
   useEffect(() => {
-    let prevWalletItems = [];
-    const fetchWalletItems = async () => {
-      if (!user) return;
+    if (!user) return;
+
+    const walletRef = collection(db, "users", user.uid, "wallet");
+    let prevReceivedCount = 0;
+
+    const unsubscribe = onSnapshot(walletRef, (walletSnapshot) => {
       try {
-        const walletRef = collection(db, "users", user.uid, "wallet");
-        const walletSnapshot = await getDocs(walletRef);
         const itemsMap = new Map();
-        let received = [];
-        walletSnapshot.docs.forEach(doc => {
-          const data = doc.data();
+        const received = [];
+        const sent = [];
+
+        walletSnapshot.forEach((docSnapshot) => {
+          const data = docSnapshot.data();
           const productId = data.productId;
-          
-          // Collect received items first - only from individual transfer entries with transferId
-          if (data.transferId && data.transferredFrom && data.transferredFrom !== user.uid && data.status === 'active' && data.transferType === 'received') {
-            received.push({ ...data, id: doc.id });
+
+          if (data.transferredFrom === user.uid && data.transferType === 'sent') {
+            sent.push({ ...data, id: docSnapshot.id });
           }
-          
-          // Aggregate wallet items for display - exclude individual transfer history entries
-          // Include: original purchases and aggregated entries (those without transferId)
-          if (!data.transferId) {
+
+          // Skip sent items from wallet display
+          if (data.status === 'sent') return;
+
+          // Collect received items
+          if (
+            data.transferId &&
+            data.transferredFrom &&
+            data.transferredFrom !== user.uid &&
+            data.status === "active" &&
+            data.transferType === "received"
+          ) {
+            received.push({ ...data, id: docSnapshot.id });
+          }
+
           if (itemsMap.has(productId)) {
             const existingItem = itemsMap.get(productId);
             itemsMap.set(productId, {
@@ -98,53 +110,36 @@ const Wallet = () => {
               quantity: (existingItem.quantity || 1) + (data.quantity || 1),
               transferredAt: data.transferredAt || existingItem.transferredAt,
               transferredFrom: data.transferredFrom || existingItem.transferredFrom,
-              transferredFromEmail: data.transferredFromEmail || existingItem.transferredFromEmail
+              transferredFromEmail:
+                data.transferredFromEmail || existingItem.transferredFromEmail,
             });
           } else {
             itemsMap.set(productId, {
-              id: doc.id,
-              ...data
+              id: docSnapshot.id,
+              ...data,
             });
           }
-          }
         });
+
         const items = Array.from(itemsMap.values());
         setWalletItems(items);
         setReceiveHistory(received);
-        // Notification for new received items
-        if (prevWalletItems.length && received.length > prevWalletItems.length) {
-          setNotification('You have received a new product!');
+        setTransferHistory(sent);
+
+        if (prevReceivedCount && received.length > prevReceivedCount) {
+          setNotification("You have received a new product!");
           setTimeout(() => setNotification(null), 3000);
         }
-        prevWalletItems = received;
+        prevReceivedCount = received.length;
       } catch (err) {
-        console.error("Error fetching wallet items:", err.message);
+        console.error("Error processing wallet snapshot:", err);
         alert("Failed to load wallet items. Please try again.");
       }
-    };
-    fetchWalletItems();
-  }, [user]);
+    }, (error) => {
+      console.error("Error listening to wallet updates:", error);
+    });
 
-  // Fetch transfer history (sent items)
-  useEffect(() => {
-    const fetchTransferHistory = async () => {
-      if (!user) return;
-      try {
-        const walletRef = collection(db, "users", user.uid, "wallet");
-        const walletSnapshot = await getDocs(walletRef);
-        const sent = [];
-        walletSnapshot.docs.forEach(doc => {
-          const data = doc.data();
-          if (data.transferredFrom === user.uid && data.transferType === 'sent') {
-            sent.push({ ...data, id: doc.id });
-          }
-        });
-        setTransferHistory(sent);
-      } catch (err) {
-        console.error("Error fetching transfer history:", err);
-      }
-    };
-    fetchTransferHistory();
+    return () => unsubscribe();
   }, [user]);
 
   // Real-time listener for transfer notifications (simplified)
@@ -402,13 +397,17 @@ const Wallet = () => {
     }
 
     try {
+      setIsTransferring(true);
+      const recipientEmail = transferRecipientEmail.trim();
+      
       // Find recipient's user ID
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("email", "==", transferRecipientEmail));
+      const q = query(usersRef, where("email", "==", recipientEmail));
       const querySnapshot = await getDocs(q);
       
       if (querySnapshot.empty) {
-        alert("Recipient not found");
+        window.showToast?.("Recipient not found", "error");
+        setIsTransferring(false);
         return;
       }
 
@@ -422,6 +421,7 @@ const Wallet = () => {
       const transferTimestamp = serverTimestamp();
 
       // Always create a separate wallet entry for each transfer to track individual transactions
+      // This is allowed by firestore rules (create permission)
       const recipientWalletRef = collection(db, "users", recipientId, "wallet");
       await addDoc(recipientWalletRef, {
         productId: transferringItem.productId,
@@ -437,51 +437,9 @@ const Wallet = () => {
         transferType: 'received' // Mark as received transfer
       });
 
-      // Also update the existing aggregated wallet entry if it exists
-      const recipientQuery = query(recipientWalletRef, where("productId", "==", transferringItem.productId));
-      const recipientQuerySnapshot = await getDocs(recipientQuery);
-
-      // Find the aggregated wallet entry (not a transfer history entry)
-      // Aggregated entries are those WITHOUT transferId (the individual transaction ID)
-      let aggregatedEntry = null;
-      for (const doc of recipientQuerySnapshot.docs) {
-        const data = doc.data();
-        if (!data.transferId) {
-          aggregatedEntry = { doc, data };
-          break;
-        }
-      }
-
-      if (aggregatedEntry) {
-        // Update existing aggregated product quantity
-        const currentQuantity = aggregatedEntry.data.quantity || 1;
-        
-        await updateDoc(doc(db, "users", recipientId, "wallet", aggregatedEntry.doc.id), {
-          quantity: currentQuantity + quantityToTransfer,
-          transferredAt: transferTimestamp,
-          transferredFrom: user.uid,
-          transferredFromEmail: user.email,
-          updatedAt: transferTimestamp
-        });
-      } else {
-        // Create aggregated wallet entry for the recipient
-        // Note: Must use 'received' type to satisfy Firestore rules
-        // Don't include transferId to distinguish from individual transfer history entries
-        await addDoc(recipientWalletRef, {
-          productId: transferringItem.productId,
-          productName: transferringItem.productName,
-          productPrice: transferringItem.productPrice,
-          imageUrl: transferringItem.imageUrl,
-          quantity: quantityToTransfer,
-          transferredAt: transferTimestamp,
-          transferredFrom: user.uid,
-          transferredFromEmail: user.email,
-          createdAt: transferTimestamp,
-          updatedAt: transferTimestamp,
-          status: 'active',
-          transferType: 'received' // Must be 'received' to satisfy Firestore rules
-        });
-      }
+      // REMOVED: Attempt to update aggregated wallet entry
+      // This was causing the hang because users cannot UPDATE other users' documents
+      // We now rely on client-side aggregation in fetchWalletItems
 
       // Update sender's wallet
       const senderWalletRef = collection(db, "users", user.uid, "wallet");
@@ -489,30 +447,39 @@ const Wallet = () => {
       const senderQuerySnapshot = await getDocs(senderQuery);
 
       if (!senderQuerySnapshot.empty) {
-        // Find the aggregated wallet entry (not individual transfer entries)
-        // Aggregated entries are those WITHOUT transferId (the individual transaction ID)
-        let aggregatedEntry = null;
-        for (const doc of senderQuerySnapshot.docs) {
-          const data = doc.data();
-          if (!data.transferId) {
-            aggregatedEntry = { doc, data };
-            break;
-          }
-        }
+        let remainingToTransfer = quantityToTransfer;
 
-        if (aggregatedEntry) {
-          const senderData = aggregatedEntry.data;
-          const newQuantity = senderData.quantity - quantityToTransfer;
+        for (const docSnapshot of senderQuerySnapshot.docs) {
+          if (remainingToTransfer <= 0) break;
 
-          if (newQuantity > 0) {
-            await updateDoc(doc(db, "users", user.uid, "wallet", aggregatedEntry.doc.id), {
-              quantity: newQuantity,
+          const data = docSnapshot.data();
+          // Skip 'sent' items or items that are not active
+          if (data.status === 'sent' || (data.status && data.status !== 'active')) continue;
+
+          const currentQty = data.quantity || 0;
+          if (currentQty <= 0) continue;
+
+          const docRef = doc(db, "users", user.uid, "wallet", docSnapshot.id);
+
+          if (currentQty > remainingToTransfer) {
+            // This doc has enough to cover the rest
+            await updateDoc(docRef, {
+              quantity: currentQty - remainingToTransfer,
+              status: 'active',
               updatedAt: transferTimestamp
             });
+            remainingToTransfer = 0;
           } else {
-            await deleteDoc(doc(db, "users", user.uid, "wallet", aggregatedEntry.doc.id));
+            // Mark as sent instead of deleting to avoid permission issues
+            await updateDoc(docRef, {
+              quantity: 0,
+              status: 'sent',
+              updatedAt: transferTimestamp
+            });
+            remainingToTransfer -= currentQty;
           }
         }
+
         
         // Log transfer event in sender's wallet for history with unique transfer ID
         await addDoc(senderWalletRef, {
@@ -522,7 +489,8 @@ const Wallet = () => {
           imageUrl: transferringItem.imageUrl,
           quantity: quantityToTransfer,
           transferredAt: transferTimestamp,
-          transferredToEmail: transferRecipientEmail,
+
+          transferredToEmail: recipientEmail,
           transferredTo: recipientId,
           transferredFrom: user.uid,
           transferId: transferId, // Unique transfer transaction ID
@@ -546,10 +514,12 @@ const Wallet = () => {
       });
 
       closeTransferModal();
-      alert("Transfer successful!");
+      window.showToast?.("Transfer successful!", "success");
     } catch (error) {
       console.error("Error transferring item:", error);
-      alert("Failed to transfer item. Please try again.");
+      window.showToast?.("Failed to transfer item. Please try again.", "error");
+    } finally {
+      setIsTransferring(false);
     }
   };
 
@@ -762,6 +732,7 @@ const Wallet = () => {
   const selectRecipient = (recipient) => {
     setTransferRecipientEmail(recipient.email);
     setSearchResults([]);
+    setSearchQuery(""); // Clear search query as well
   };
 
   // Calculate total value of wallet items
@@ -808,7 +779,14 @@ const Wallet = () => {
 
   // Handle notification icon toggle
   const handleNotificationIconToggle = () => {
-    setIsNotificationIconOpen(prev => !prev);
+    setIsNotificationIconOpen(prev => {
+      const nextState = !prev;
+      if (!prev && notificationCount > 0) {
+        setNotificationCount(0);
+        setTransferNotifications([]);
+      }
+      return nextState;
+    });
   };
 
   // Manual refresh for notifications (fallback)
@@ -1186,7 +1164,10 @@ const Wallet = () => {
                   <input
                     type="email"
                     value={transferRecipientEmail}
-                    onChange={(e) => setTransferRecipientEmail(e.target.value)}
+                    onChange={(e) => {
+                      setTransferRecipientEmail(e.target.value);
+                      handleSearchChange(e);
+                    }}
                     placeholder="Enter recipient's email"
                     className="form-input"
                   />
@@ -1231,9 +1212,9 @@ const Wallet = () => {
               <button
                 onClick={handleTransfer}
                 className="modal-button confirm"
-                disabled={!transferRecipientEmail || !transferQuantity}
+                disabled={!transferRecipientEmail || !transferQuantity || isTransferring}
               >
-                Transfer
+                {isTransferring ? "Transferring..." : "Transfer"}
               </button>
             </div>
           </div>

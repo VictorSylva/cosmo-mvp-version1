@@ -280,6 +280,7 @@
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -470,7 +471,7 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .admin-product-management {
-    padding: 15px;
+    padding: 10px;
   }
   
   .admin-header {

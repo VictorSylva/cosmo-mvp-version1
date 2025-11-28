@@ -249,7 +249,7 @@ const PartnerPayments = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <button
         onClick={() => navigate("/admin/dashboard")}
         style={{
@@ -268,7 +268,7 @@ const PartnerPayments = () => {
       <h1 className="text-2xl font-bold mb-6">Partner Store Payments</h1>
 
       <div className="mb-6 flex gap-2 items-center flex-wrap">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {["all", "pending", "approved", "completed"].map((filterType) => (
             <button
               key={filterType}
@@ -284,7 +284,7 @@ const PartnerPayments = () => {
           ))}
         </div>
 
-        <div className="flex gap-2 ml-4">
+        <div className="flex gap-2 ml-0 md:ml-4 mt-2 md:mt-0 items-center">
           <span className="text-sm text-gray-600 self-center">View:</span>
           <button
             onClick={() => setViewMode("list")}
@@ -310,13 +310,13 @@ const PartnerPayments = () => {
 
         <button
           onClick={fixCompletedPayments}
-          className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 ml-4"
+          className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 ml-0 md:ml-4 mt-2 md:mt-0"
         >
           Fix Completed Payments
         </button>
         <button
           onClick={fixPendingPayments}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 ml-2"
+          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 ml-0 md:ml-2 mt-2 md:mt-0"
         >
           Fix Incorrectly Completed
         </button>
@@ -328,7 +328,8 @@ const PartnerPayments = () => {
         <>
           {viewMode === "list" ? (
             <div className="bg-white rounded-lg shadow overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
+              <div className="responsive-table-wrapper">
+                <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -485,6 +486,7 @@ const PartnerPayments = () => {
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           ) : (
             <div className="space-y-6">

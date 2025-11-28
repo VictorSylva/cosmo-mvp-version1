@@ -11,10 +11,14 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -22,11 +26,29 @@ const Signup = () => {
       await setDoc(doc(db, "users", user.uid), {
         email: user.email,
         createdAt: new Date(),
+        role: 'user' // Default role
       });
+      
+      window.showToast?.("Account created successfully!", "success");
       navigate("/products");
     } catch (err) {
-      setError(err.message);
-      alert("Signup failed. Please try again.");
+      console.error("Signup error:", err);
+      let errorMessage = "Signup failed. Please try again.";
+
+      if (err.code === 'auth/email-already-in-use') {
+        errorMessage = "This email is already registered. Please login instead.";
+      } else if (err.code === 'auth/weak-password') {
+        errorMessage = "Password should be at least 6 characters.";
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = "Please enter a valid email address.";
+      } else if (err.code === 'auth/network-request-failed') {
+        errorMessage = "Network error. Please check your internet connection.";
+      }
+
+      setError(errorMessage);
+      window.showToast?.(errorMessage, "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -42,6 +64,7 @@ const Signup = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            disabled={isLoading}
           />
           <input
             type="password"
@@ -49,8 +72,11 @@ const Signup = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            disabled={isLoading}
           />
-          <button type="submit">Sign Up</button>
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? 'Signing up...' : 'Sign Up'}
+          </button>
         </form>
         <p>
           Already have an account?{" "}

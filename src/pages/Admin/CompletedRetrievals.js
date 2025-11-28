@@ -135,7 +135,7 @@ const CompletedRetrievals = () => {
   };
 
   return (
-    <div className="p-6" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="p-4 md:p-6" style={{ maxWidth: '1200px', margin: '0 auto' }}>
       <button
         onClick={() => navigate('/admin/dashboard')}
         style={{ backgroundColor: '#3b82f6', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', marginBottom: '16px', fontWeight: 500, cursor: 'pointer' }}

@@ -38,7 +38,7 @@ const PartnerStores = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <button
         onClick={() => navigate('/admin/dashboard')}
         style={{ backgroundColor: '#3b82f6', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', marginBottom: '16px', fontWeight: 500, cursor: 'pointer' }}
