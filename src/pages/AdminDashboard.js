@@ -311,6 +311,16 @@ const AdminDashboard = () => {
             Add, edit, and manage products in the catalog
           </p>
             </div>
+
+        <div className="section-card" onClick={() => navigate('/admin/inventory')}>
+          <div className="section-icon">
+            <FaBoxes />
+          </div>
+          <h2 className="section-title">Inventory Overview</h2>
+          <p className="section-description">
+            View all partner stores and their current stock levels
+          </p>
+        </div>
       </div>
 
       <div className="users-list">

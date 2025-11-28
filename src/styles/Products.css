@@ -304,23 +304,26 @@ body, html {
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
   background: #fff;
+  position: relative;
+  z-index: 1;
 }
 .product-overlay {
   position: absolute;
   left: 0; right: 0; bottom: 0;
-  background: rgba(20, 40, 40, 0.82);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.4));
   color: #fff;
   padding: 18px 16px 12px 16px;
-  opacity: 0.3;
+  opacity: 1;
   pointer-events: none;
   transition: all 0.3s ease;
   border-radius: 0 0 16px 16px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  z-index: 2;
 }
 .product-image-container:hover .product-overlay {
-  opacity: 1;
+  background: rgba(20, 40, 40, 0.92);
   pointer-events: auto;
 }
 .product-overlay .product-name {

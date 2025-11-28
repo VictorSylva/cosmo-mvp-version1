@@ -973,6 +973,13 @@ const Wallet = () => {
           Transfer History
         </button>
         <button
+          onClick={() => navigate("/nearby-stores")}
+          className="nav-tab"
+          style={{ backgroundColor: '#059669', color: 'white' }}
+        >
+          Find Nearby Stores
+        </button>
+        <button
           onClick={() => navigate("/products")}
           className="back-button"
         >
