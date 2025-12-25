@@ -101,25 +101,25 @@ const Sidebar = ({ isAdmin, isPartnerStore, goToAdminDashboard, handlePartnerSto
         </button>
       </div>
       <div className="sidebar-icons">
-        <button aria-label="Search" onClick={() => setShowSidebarSearch(true)}> <FaSearch /> <span className="sidebar-tooltip">Search</span> <span className="sidebar-label">Search</span> </button>
-        <button aria-label="Categories" onClick={() => setShowSidebarCategories(true)}> <FaThLarge /> <span className="sidebar-tooltip">Categories</span> <span className="sidebar-label">Categories</span> </button>
-        {isAdmin && (
+        <button aria-label="Search" onClick={() => setShowSidebarSearch(true)}> <FaSearch /> <span className="sidebar-tooltip">Find Food</span> <span className="sidebar-label">Find Food</span> </button>
+        <button aria-label="Categories" onClick={() => setShowSidebarCategories(true)}> <FaThLarge /> <span className="sidebar-tooltip">Food Types</span> <span className="sidebar-label">Food Types</span> </button>
+        {isAdmin === true && (
           <button aria-label="Admin Dashboard" onClick={goToAdminDashboard}> <FaUserShield /> <span className="sidebar-tooltip">Admin</span> <span className="sidebar-label">Admin</span> </button>
         )}
-        {isPartnerStore && (
+        {isPartnerStore === true && (
           <button aria-label="Partner Store Dashboard" onClick={handlePartnerStoreClick}> <FaStore /> <span className="sidebar-tooltip">Store</span> <span className="sidebar-label">Store</span> </button>
         )}
-        <div style={{ display: 'flex', alignItems: 'center' }}>
           <button aria-label="Cart" onClick={() => navigate("/cart")}> 
-            <FaShoppingCart />
-            <span className="sidebar-tooltip">Cart</span>
-            <span className="sidebar-label">Cart</span>
+            <div style={{ position: 'relative', display: 'flex' }}>
+              <FaShoppingCart />
+              {totalCartQuantity > 0 && (
+                <span className="cart-badge">{totalCartQuantity}</span>
+              )}
+            </div>
+            <span className="sidebar-tooltip">Reserve</span>
+            <span className="sidebar-label">Reserve</span>
           </button>
-          {totalCartQuantity > 0 && (
-            <span className="cart-badge" style={{ marginLeft: 8 }}>{totalCartQuantity}</span>
-          )}
-        </div>
-        <button aria-label="Wallet" onClick={() => navigate("/wallet")}> <FaWallet /> <span className="sidebar-tooltip">Wallet</span> <span className="sidebar-label">Wallet</span> </button>
+        <button aria-label="Wallet" onClick={() => navigate("/wallet")}> <FaWallet /> <span className="sidebar-tooltip">My Food</span> <span className="sidebar-label">My Food</span> </button>
         <button 
           aria-label="Subscription" 
           onClick={() => setShowSubscriptionModal(true)}
@@ -172,6 +172,9 @@ const Sidebar = ({ isAdmin, isPartnerStore, goToAdminDashboard, handlePartnerSto
           showUpgradePrompt={false}
         />
       )}
+      <div className="sidebar-footer" style={{ textAlign: 'center', padding: '10px', fontSize: '0.8rem', color: '#888', marginTop: 'auto' }}>
+        <small>Small steps. Big security.</small>
+      </div>
     </nav>
   );
 };

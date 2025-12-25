@@ -893,7 +893,7 @@ const Wallet = () => {
         onDismiss={handleNotificationDismiss}
       />
       <div className="wallet-header">
-        <h2 className="wallet-title">My Wallet</h2>
+        <h2 className="wallet-title">My Food Wallet</h2>
       </div>
 
       {/* Stats Summary */}
@@ -903,11 +903,11 @@ const Wallet = () => {
           <p className="stat-value">₦{calculateTotalValue().toFixed(2)}</p>
         </div>
         <div className="stat-card green">
-          <h3 className="stat-title">Total Savings</h3>
+          <h3 className="stat-title">Inflation Protected</h3>
           <p className="stat-value">₦{calculateTotalSavings().toFixed(2)}</p>
         </div>
         <div className="stat-card yellow">
-          <h3 className="stat-title">Items Redeemed</h3>
+          <h3 className="stat-title">Items Picked Up</h3>
           <p className="stat-value">{calculateTotalItemsRedeemed()}</p>
         </div>
       </div>
@@ -953,52 +953,48 @@ const Wallet = () => {
       </div>
 
       {/* Navigation Bar */}
+      {/* Navigation Bar */}
       <div className="nav-tabs">
         <button
           onClick={() => setActiveTab('wallet')}
           className={`nav-tab ${activeTab === 'wallet' ? 'active' : ''}`}
         >
-          My Wallet
+          My Food Wallet
         </button>
         <button
-          onClick={() => setActiveTab('redemptions')}
-          className={`nav-tab ${activeTab === 'redemptions' ? 'active' : ''}`}
+          onClick={() => setActiveTab('activity')}
+          className={`nav-tab ${activeTab === 'activity' ? 'active' : ''}`}
         >
-          Redemption History
-        </button>
-        <button
-          onClick={() => setActiveTab('transfers')}
-          className={`nav-tab ${activeTab === 'transfers' ? 'active' : ''}`}
-        >
-          Transfer History
+          Activity Log
         </button>
         <button
           onClick={() => navigate("/nearby-stores")}
           className="nav-tab"
           style={{ backgroundColor: '#059669', color: 'white' }}
         >
-          Find Nearby Stores
+          Find Pickup Stores
         </button>
         <button
           onClick={() => navigate("/products")}
           className="back-button"
         >
-          Back to Products
+          Secure More Food
         </button>
       </div>
 
       {/* Wallet Tab Content */}
       {activeTab === 'wallet' && (
         <>
+          <p className="wallet-microcopy">Your items are safe here. Pick them up whenever you're ready.</p>
           {selectedItems.length > 0 && (
             <div className="stat-card green">
               <p className="stat-title">
-                Total Savings on Selected Items: ₦{calculateSelectedItemsSavings().toFixed(2)}
+                Inflation Protected on Selected Items: ₦{calculateSelectedItemsSavings().toFixed(2)}
               </p>
             </div>
           )}
           {walletItems.length === 0 ? (
-            <p>You have no prepaid items in your wallet.</p>
+            <p>Your food reserve is empty. Start building your safety net today.</p>
           ) : (
             <>
               <div className="wallet-items-grid">
@@ -1016,7 +1012,7 @@ const Wallet = () => {
                       className="wallet-item-image"
                     />
                     <h3 className="wallet-item-name">{item.productName}</h3>
-                    <p className="wallet-item-price">Prepaid Price: ₦{item.productPrice}</p>
+                    <p className="wallet-item-price">Secured Price: ₦{item.productPrice}</p>
                     {currentPrices[item.productId] && (
                       <p className="wallet-item-price">Current Price: ₦{currentPrices[item.productId]}</p>
                     )}
@@ -1024,7 +1020,7 @@ const Wallet = () => {
                     {selectedItems.includes(item.id) && (
                       <div>
                         <label>
-                          Quantity to retrieve:
+                          Quantity to pick up:
                           <input
                             type="number"
                             min="1"
@@ -1036,7 +1032,7 @@ const Wallet = () => {
                         </label>
                         {calculateSelectedItemsSavings() > 0 && (
                           <p className="savings-badge">
-                            Savings: ₦{calculateSelectedItemsSavings().toFixed(2)}
+                            Inflation Protected: ₦{calculateSelectedItemsSavings().toFixed(2)}
                           </p>
                         )}
                       </div>
@@ -1048,13 +1044,13 @@ const Wallet = () => {
                         onChange={() => handleSelectItem(item.id)}
                         className="select-checkbox"
                       />
-                      Select for Retrieval
+                      Select for Pickup
                     </label>
                     <button
                       onClick={() => openTransferModal(item)}
                       className="transfer-button"
                     >
-                      Transfer
+                      Share with loved ones
                     </button>
                   </motion.div>
                 ))}
@@ -1066,7 +1062,7 @@ const Wallet = () => {
                     className="transfer-button"
                     style={{ maxWidth: '200px' }}
                   >
-                    Generate QR Code
+                    Get Pickup Code
                   </button>
                 </div>
               )}
@@ -1105,170 +1101,91 @@ const Wallet = () => {
         </>
       )}
 
-      {/* Redemptions Tab Content */}
-      {activeTab === 'redemptions' && (
-        <div className="redemption-history">
-          {recentRedemptions.length === 0 ? (
-            <p className="text-gray-500">No redemption history available.</p>
-          ) : (
-            recentRedemptions.map((redemption) => (
-              <div key={redemption.id} className="redemption-card">
-                <div className="flex justify-between items-center">
-                  <p className="redemption-date">
-                    Redeemed on: {new Date(redemption.confirmedAt).toLocaleString()}
-                  </p>
-                  <p className="redemption-savings">
-                    Total Saved: ₦{redemption.payments.reduce((sum, payment) => sum + payment.priceDifference, 0).toFixed(2)}
-                  </p>
-                </div>
-                <div className="redemption-items-grid">
-                  {redemption.payments.map((payment) => (
-                    <div key={payment.id} className="redemption-item">
-                      <p className="redemption-item-name">{payment.productName}</p>
-                      <div className="price-row">
-                        <span>Prepaid Price:</span>
-                        <span>₦{payment.prepaidPrice}</span>
-                      </div>
-                      <div className="price-row">
-                        <span>Store Price:</span>
-                        <span>₦{payment.finalPrice}</span>
-                      </div>
-                      <div className="savings-row">
-                        <span>You Saved:</span>
-                        <span>₦{payment.priceDifference.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Transfer Modal */}
-      {showTransferModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3 className="modal-title">Transfer Item</h3>
-            <div className="modal-body">
-              <div className="transfer-item-info">
-                <img
-                  src={transferringItem?.imageUrl || "https://via.placeholder.com/150"}
-                  alt={transferringItem?.productName}
-                  className="transfer-item-image"
-                />
-                <div>
-                  <h4>{transferringItem?.productName}</h4>
-                  <p>Price: ₦{transferringItem?.productPrice}</p>
-                  <p>Available Quantity: {transferringItem?.quantity || 1}</p>
-                </div>
-              </div>
-
-              <div className="transfer-form">
-                <div className="form-group">
-                  <label>Recipient Email</label>
-                  <input
-                    type="email"
-                    value={transferRecipientEmail}
-                    onChange={(e) => {
-                      setTransferRecipientEmail(e.target.value);
-                      handleSearchChange(e);
-                    }}
-                    placeholder="Enter recipient's email"
-                    className="form-input"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Quantity to Transfer</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max={transferringItem?.quantity || 1}
-                    value={transferQuantity}
-                    onChange={(e) => setTransferQuantity(parseInt(e.target.value))}
-                    className="form-input"
-                  />
-                </div>
-
-                {searchResults.length > 0 && (
-                  <div className="search-results">
-                    {searchResults.map((result) => (
-                      <div
-                        key={result.id}
-                        className="search-result-item"
-                        onClick={() => selectRecipient(result)}
-                      >
-                        <p>{result.displayName}</p>
-                        <p className="email">{result.email}</p>
+      {/* Activity Log Tab Content */}
+      {activeTab === 'activity' && (
+        <div className="activity-log">
+          <div className="activity-section">
+            <h3>Pickup History</h3>
+            {recentRedemptions.length === 0 ? (
+              <p className="text-gray-500">No activity yet. Your future self will thank you for starting.</p>
+            ) : (
+              recentRedemptions.map((redemption) => (
+                <div key={redemption.id} className="redemption-card">
+                  <div className="flex justify-between items-center">
+                    <p className="redemption-date">
+                      Picked up on: {new Date(redemption.confirmedAt).toLocaleString()}
+                    </p>
+                    <p className="redemption-savings">
+                      Inflation Protected: ₦{redemption.payments.reduce((sum, payment) => sum + payment.priceDifference, 0).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="redemption-items-grid">
+                    {redemption.payments.map((payment) => (
+                      <div key={payment.id} className="redemption-item">
+                        <p className="redemption-item-name">{payment.productName}</p>
+                        <div className="price-row">
+                          <span>Secured Price:</span>
+                          <span>₦{payment.prepaidPrice}</span>
+                        </div>
+                        <div className="price-row">
+                          <span>Store Price:</span>
+                          <span>₦{payment.finalPrice}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="activity-section" style={{ marginTop: '2rem' }}>
+            <h3>Sharing History</h3>
+            <div className="sharing-history-grid">
+              <div className="sharing-column">
+                <h4>Received</h4>
+                {receiveHistory.length === 0 ? (
+                  <p>No products received yet.</p>
+                ) : (
+                  <ul>
+                    {receiveHistory
+                      .sort((a, b) => {
+                        const timeA = a.transferredAt ? a.transferredAt.seconds : 0;
+                        const timeB = b.transferredAt ? b.transferredAt.seconds : 0;
+                        return timeB - timeA;
+                      })
+                      .map((item, index) => (
+                      <li key={`received-${item.transferId || item.id}-${index}`}>
+                        Received {item.productName} (Qty: {item.quantity}) from {item.transferredFromEmail || 'Unknown'} <br/>
+                        <span className="text-sm text-gray-500">{item.transferredAt ? new Date(item.transferredAt.seconds * 1000).toLocaleString() : 'Unknown'}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="sharing-column">
+                <h4>Sent</h4>
+                {transferHistory.length === 0 ? (
+                  <p>No products sent yet.</p>
+                ) : (
+                  <ul>
+                    {transferHistory
+                      .sort((a, b) => {
+                        const timeA = a.transferredAt ? a.transferredAt.seconds : 0;
+                        const timeB = b.transferredAt ? b.transferredAt.seconds : 0;
+                        return timeB - timeA;
+                      })
+                      .map((item, index) => (
+                      <li key={`sent-${item.transferId || item.id}-${index}`}>
+                         Sent {item.productName} (Qty: {item.quantity}) to {item.transferredToEmail || 'Unknown'} <br/>
+                         <span className="text-sm text-gray-500">{item.transferredAt ? new Date(item.transferredAt.seconds * 1000).toLocaleString() : 'Unknown'}</span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
             </div>
-
-            <div className="modal-actions">
-              <button
-                onClick={closeTransferModal}
-                className="modal-button cancel"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleTransfer}
-                className="modal-button confirm"
-                disabled={!transferRecipientEmail || !transferQuantity || isTransferring}
-              >
-                {isTransferring ? "Transferring..." : "Transfer"}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
-
-      {/* Transfer History Tab Content */}
-      {activeTab === 'transfers' && (
-        <div className="transfer-history">
-          <h3>Received Products</h3>
-          {receiveHistory.length === 0 ? (
-            <p>No products received yet.</p>
-          ) : (
-            <ul>
-              {receiveHistory
-                .sort((a, b) => {
-                  // Sort by transfer timestamp, most recent first
-                  const timeA = a.transferredAt ? a.transferredAt.seconds : 0;
-                  const timeB = b.transferredAt ? b.transferredAt.seconds : 0;
-                  return timeB - timeA;
-                })
-                .map((item, index) => (
-                <li key={`received-${item.transferId || item.id}-${index}`}>
-                  Received {item.productName} (Qty: {item.quantity}) from {item.transferredFromEmail || 'Unknown'} on {item.transferredAt ? new Date(item.transferredAt.seconds * 1000).toLocaleString() : 'Unknown'}
-                </li>
-              ))}
-            </ul>
-          )}
-          <h3>Sent Products</h3>
-          {transferHistory.length === 0 ? (
-            <p>No products sent yet.</p>
-          ) : (
-            <ul>
-              {transferHistory
-                .sort((a, b) => {
-                  // Sort by transfer timestamp, most recent first
-                  const timeA = a.transferredAt ? a.transferredAt.seconds : 0;
-                  const timeB = b.transferredAt ? b.transferredAt.seconds : 0;
-                  return timeB - timeA;
-                })
-                .map((item, index) => (
-                <li key={`sent-${item.transferId || item.id}-${index}`}>
-                  Sent {item.productName} (Qty: {item.quantity}) to {item.transferredToEmail || 'Unknown'} on {item.transferredAt ? new Date(item.transferredAt.seconds * 1000).toLocaleString() : 'Unknown'}
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
       )}
 

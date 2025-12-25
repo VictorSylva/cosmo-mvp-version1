@@ -24,6 +24,7 @@ const Products = () => {
   const [isPartnerStore, setIsPartnerStore] = useState(false);
   const [notification, setNotification] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { cartItems, addToCart } = useCart(); // Consume cart context
   const { getSubscriptionInfo } = useSubscription();
@@ -60,9 +61,14 @@ const Products = () => {
             const userData = userDoc.data();
             setIsAdmin(userData.role === 'admin');
             setIsPartnerStore(userData.isPartnerStore === true);
+          } else {
+             setIsAdmin(false);
+             setIsPartnerStore(false);
           }
         } catch (error) {
           console.error("Error checking user status:", error);
+          setIsAdmin(false);
+          setIsPartnerStore(false);
         }
       } else {
         navigate("/login");
@@ -84,6 +90,8 @@ const Products = () => {
       } catch (err) {
         console.error("Error fetching products:", err.message);
         alert("🚨 Failed to load products. Please try again later.");
+      } finally {
+        setLoading(false);
       }
     };
     fetchProducts();
@@ -221,9 +229,6 @@ const Products = () => {
               <span className="header-profile-name mobile-only">
                 {user.displayName || user.email}
               </span>
-              <button className="header-profile-logout mobile-only" onClick={async () => { await signOut(auth); navigate("/"); }}>
-                Log out
-              </button>
             </div>
           </div>
         )}
@@ -233,8 +238,10 @@ const Products = () => {
       <div className="main-content">
         {/* Product Grid Section */}
         <section className="product-section">
-          {filteredProducts.length === 0 ? (
-            <p className="no-products">No products found.</p>
+          {loading ? (
+             <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>Loading reserve options...</div>
+          ) : filteredProducts.length === 0 ? (
+            <p className="no-products">No items match your search. Try broadening your reserve options. You're covered.</p>
           ) : (
             <Masonry
               breakpointCols={{ default: 4, 1100: 3, 700: 2, 435: 2, 0: 1 }}
@@ -252,14 +259,12 @@ const Products = () => {
                     id={`product-${product.id}`}
                   >
                     <div className="product-image-container">
-                    <img
-                      className="product-image"
-                      src={product.imageUrl || "https://via.placeholder.com/150"}
-                      alt={product.name}
-                    />
+                      <img
+                        className="product-image"
+                        src={product.imageUrl || "https://via.placeholder.com/150"}
+                        alt={product.name}
+                      />
                       <div className="product-overlay">
-                        <div className="product-name">{product.name}</div>
-                        <div className="product-price">₦{product.price.toLocaleString()}</div>
                         <button
                           className="add-to-cart-overlay-btn"
                           onClick={(e) => {
@@ -267,19 +272,30 @@ const Products = () => {
                             try {
                               const subscriptionInfo = getSubscriptionInfo();
                               addToCart(product, subscriptionInfo);
-                              showNotification(`Added ${product.name} to cart.`);
+                              showNotification(`Secured ${product.name} for later.`);
                             } catch (error) {
                               if (error.message === 'WALLET_LIMIT_EXCEEDED') {
                                 setShowSubscriptionModal(true);
-                                showNotification("❌ Wallet limit exceeded. Please subscribe to add more items.");
+                                showNotification("❌ Wallet limit exceeded. Please subscribe to secure more items.");
                               } else {
-                                showNotification("❌ Failed to add item to cart. Please try again.");
+                                showNotification("❌ Failed to secure item. Please try again.");
                               }
                             }
                           }}
                         >
-                          {isInCart ? '✓ Added' : '+ Add to Cart'}
+                          {isInCart ? '✓ Secured' : 'Secure This Item'}
                         </button>
+                      </div>
+                    </div>
+                    
+                    <div className="product-details">
+                      <div className="product-info">
+                        <div className="product-name" title={product.name}>
+                          {product.name}
+                        </div>
+                        <div className="product-price">
+                          ₦{product.price.toLocaleString()}
+                        </div>
                       </div>
                     </div>
                   </motion.div>

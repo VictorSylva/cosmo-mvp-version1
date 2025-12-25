@@ -65,9 +65,12 @@
   transform: translateX(-2px);
 }
 
-.product-details-header .header-logo {
+.product-details-header .product-details-logo {
   height: 40px;
   width: auto;
+  position: relative; /* Ensure it stays in flow */
+  left: auto;
+  transform: none;
 }
 
 .product-details-content {

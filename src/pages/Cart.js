@@ -57,20 +57,21 @@ const Cart = () => {
 
       <header className="cart-header-container">
         <img className="cart-logo" src={CosmoCartLogo} alt="CosmoCart Logo" />
-        <div className="cart-header-buttons">
-           <button className="back-button" onClick={() => navigate("/products")}>
-            Back to Products
-          </button>
-          <button className="wallet-button" onClick={() => navigate("/wallet")}>
-            Go to Wallet
-          </button>
-        </div>
       </header>
 
       <div className="cart-content">
-        <h2>Your Cart</h2>
+        <h2>Your Food Reserve</h2>
+        
+        <div className="cart-page-actions">
+           <button className="back-button" onClick={() => navigate("/products")}>
+            Secure Food
+          </button>
+          <button className="wallet-button" onClick={() => navigate("/wallet")}>
+            My Wallet
+          </button>
+        </div>
         {cartItems.length === 0 ? (
-          <p>Your cart is empty. Go to the <span onClick={() => navigate('/products')} className="products-link">products page</span> to add items.</p>
+          <p>Your reserve is empty. A little planning goes a long way. Go to the <span onClick={() => navigate('/products')} className="products-link">products page</span> to secure items.</p>
         ) : (
           <div className="cart-items-list">
             {cartItems.map(item => (
@@ -92,9 +93,10 @@ const Cart = () => {
               </div>
             ))}
             <div className="cart-summary">
-              <h3>Order Summary</h3>
+              <h3>Reserve Summary</h3>
               <p>Total Items: {cartItems.reduce((total, item) => total + item.quantity, 0)}</p>
               <p className="cart-total">Total: ₦{calculateCartTotal().toLocaleString()}</p>
+              <p className="price-lock-text">🔒 Your price is locked in.</p>
               
               {(() => {
                 const subscriptionInfo = getSubscriptionInfo();
@@ -123,22 +125,22 @@ const Cart = () => {
                     amount={calculateCartTotal() * 100}
                     metadata={{ name: user?.displayName, phone: "N/A" }}
                     publicKey={publicKey}
-                    text="Prepay Now"
+                    text="Complete Reservation"
                     onSuccess={async (reference) => {
                       try {
                         await handleBulkPrepay(reference, subscriptionInfo);
-                        showNotification(`✅ Payment successful! Prepaid for ${cartItems.reduce((total, item) => total + item.quantity, 0)} items.`);
+                        showNotification(`✅ Your food is safe! Secured ${cartItems.reduce((total, item) => total + item.quantity, 0)} items for the future.`);
                         navigate("/wallet");
                       } catch (error) {
                         if (error.message === 'WALLET_LIMIT_EXCEEDED') {
                           setShowSubscriptionModal(true);
                           showNotification("❌ Wallet limit exceeded. Please subscribe to store more items.");
                         } else {
-                          showNotification("❌ Payment processing failed. Please try again.");
+                          showNotification("❌ We couldn't secure your items. Please try again.");
                         }
                       }
                     }}
-                    onClose={() => showNotification("ℹ️ Payment cancelled.")}
+                    onClose={() => showNotification("ℹ️ Reservation cancelled.")}
                   />
                 );
               })()}

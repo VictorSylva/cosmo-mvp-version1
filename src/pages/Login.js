@@ -64,6 +64,7 @@ const Login = () => {
     <div className="login-container">
       <div className="login-form">
       <h2>Login</h2>
+      <p className="auth-subtitle">Welcome back to your secure food future.</p>
         {error && <p className="error-message">{error}</p>}
       <form onSubmit={handleLogin}>
           <input

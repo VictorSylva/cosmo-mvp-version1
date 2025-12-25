@@ -56,6 +56,7 @@ const Signup = () => {
     <div className="signup-container">
       <div className="signup-form">
         <h2>Sign Up</h2>
+        <p className="auth-subtitle">Join the community securing their food at today's prices.</p>
         {error && <p className="error-message">{error}</p>}
       <form onSubmit={handleSignup}>
           <input

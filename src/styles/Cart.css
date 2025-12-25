@@ -9,13 +9,13 @@
 }
 
 /* Header */
+/* Header */
 .cart-header-container {
   display: flex;
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: center; /* Center logo now that buttons are gone */
   padding: 15px;
   background-color: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -25,27 +25,65 @@
   height: 60px; /* Increased from 40px for bigger size */
 }
 
-.cart-header-buttons {
+/* Page Actions (New Location) */
+.cart-page-actions {
   display: flex;
-  gap: 10px;
-  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
 }
 
 .back-button,
 .wallet-button {
-  background-color: #095859;
-  color: white;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 5px;
+  padding: 10px 20px; /* Slightly larger for main body */
+  border-radius: 8px; /* More rounded */
   cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.3s ease;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  white-space: nowrap; /* Prevent wrapping */
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
 }
 
-.back-button:hover,
+/* Secondary Action (Ghost) */
+.back-button {
+  background-color: transparent;
+  color: #095859;
+  border: 1.5px solid #095859;
+}
+
+.back-button:hover {
+  background-color: #f0fdf9;
+  transform: translateY(-1px);
+}
+
+/* Primary Action (Solid) */
+.wallet-button {
+  background-color: #095859;
+  color: white;
+  border: 1.5px solid #095859; /* Match border width for alignment */
+  box-shadow: 0 4px 6px rgba(9, 88, 89, 0.2);
+}
+
 .wallet-button:hover {
-  background-color: #063f3f;
+  background-color: #064041;
+  border-color: #064041;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 8px rgba(9, 88, 89, 0.25);
+}
+
+@media (max-width: 768px) {
+  .back-button,
+  .wallet-button {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+  }
 }
 
 /* Cart Content */
@@ -278,6 +316,10 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .cart-logo {
+    height: 40px; /* Smaller logo for mobile */
+  }
+
   .wallet-limit-warning {
     bottom: 10px;
     left: 10px;

@@ -52,13 +52,13 @@ const ProductDetails = () => {
     try {
       const subscriptionInfo = getSubscriptionInfo();
       addToCart(product, subscriptionInfo);
-      showNotification(`Added ${product.name} to cart.`);
+      showNotification(`Secured ${product.name} for later.`);
     } catch (error) {
       if (error.message === 'WALLET_LIMIT_EXCEEDED') {
         setShowSubscriptionModal(true);
-        showNotification("❌ Wallet limit exceeded. Please subscribe to add more items.");
+        showNotification("❌ Wallet limit exceeded. Please subscribe to secure more items.");
       } else {
-        showNotification("❌ Failed to add item to cart. Please try again.");
+        showNotification("❌ Failed to secure item. Please try again.");
       }
     }
   };
@@ -97,9 +97,9 @@ const ProductDetails = () => {
       {/* Header */}
       <div className="product-details-header">
         <button className="back-button" onClick={() => navigate("/products")}>
-          <FaArrowLeft /> Back to Products
+          <FaArrowLeft /> Back to Food Items
         </button>
-        <img src={CosmoCartLogo} alt="CosmoCart" className="header-logo" />
+        <img src={CosmoCartLogo} alt="CosmoCart" className="product-details-logo" />
       </div>
 
       {/* Main Content */}
@@ -140,20 +140,20 @@ const ProductDetails = () => {
               onClick={handleAddToCart}
             >
               <FaShoppingCart />
-              {isInCart ? 'Added to Cart' : 'Add to Cart'}
+              {isInCart ? 'Secured in Reserve' : 'Secure This Item'}
             </button>
             
             <button
               className="view-cart-button"
               onClick={() => navigate("/cart")}
             >
-              View Cart ({cartItems.length})
+              Review Reserve ({cartItems.length})
             </button>
           </div>
 
           {isInCart && (
             <div className="already-in-cart-notice">
-              ✓ This item is already in your cart
+              ✓ This item is already secured in your reserve
             </div>
           )}
         </div>
