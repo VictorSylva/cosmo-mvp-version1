@@ -71,6 +71,8 @@ service cloud.firestore {
         (resource.data.partnerID == request.auth.uid || resource.data.partnerId == request.auth.uid);
       // Partner stores can create payment records
       allow create: if isAuthenticated() && isPartnerStore();
+      // Allow users to read their own payments (for Items Picked Up counter)
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
     // Redemptions collection - FIXED: Allow partner stores to read/update redemptions

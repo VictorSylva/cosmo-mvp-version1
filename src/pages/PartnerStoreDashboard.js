@@ -211,46 +211,51 @@ const PartnerStoreDashboard = () => {
           const walletSnapshot = await getDocs(walletQuery);
 
           if (!walletSnapshot.empty) {
-            // Find the aggregated wallet entry (not individual transfer entries)
-            // Aggregated entries are those WITHOUT transferId (the individual transaction ID)
-            let aggregatedEntry = null;
-            for (const doc of walletSnapshot.docs) {
-              const data = doc.data();
-              if (!data.transferId) {
-                aggregatedEntry = { doc, data };
-                break;
-              }
-            }
+            let remainingToRedeem = product.quantity || 1;
 
-            if (aggregatedEntry) {
-              const walletData = aggregatedEntry.data;
-              const currentQuantity = walletData.quantity || 1;
-              const redeemQuantity = product.quantity || 1;
-              const newQuantity = currentQuantity - redeemQuantity;
+            // Sort docs: prioritize original purchases (no transferId) then received items (oldest first)
+            // This is optional but good practice to clear older stock first
+            const sortedDocs = walletSnapshot.docs.sort((a, b) => {
+              const dataA = a.data();
+              const dataB = b.data();
+              // Original purchases first (no transferId)
+              if (!dataA.transferId && dataB.transferId) return -1;
+              if (dataA.transferId && !dataB.transferId) return 1;
+              // Then by date
+              const timeA = dataA.transferredAt?.seconds || 0;
+              const timeB = dataB.transferredAt?.seconds || 0;
+              return timeA - timeB;
+            });
 
-              if (newQuantity > 0) {
-                // Update quantity if some items remain
-                await updateDoc(doc(db, "users", redemptionData.userId, "wallet", aggregatedEntry.doc.id), {
-                  quantity: newQuantity,
+            for (const docSnapshot of sortedDocs) {
+              if (remainingToRedeem <= 0) break;
+
+              const data = docSnapshot.data();
+              // Skip items that are already 'sent' or handled
+              if (data.status === 'sent') continue;
+              
+              const currentQuantity = data.quantity || 1;
+              
+              if (currentQuantity <= remainingToRedeem) {
+                // Consume this entire entry
+                await deleteDoc(doc(db, "users", redemptionData.userId, "wallet", docSnapshot.id));
+                remainingToRedeem -= currentQuantity;
+              } else {
+                // Consume partial quantity from this entry
+                await updateDoc(doc(db, "users", redemptionData.userId, "wallet", docSnapshot.id), {
+                  quantity: currentQuantity - remainingToRedeem,
                   updatedAt: serverTimestamp()
                 });
-              } else {
-                // Delete the wallet item if all quantities are redeemed
-                await deleteDoc(doc(db, "users", redemptionData.userId, "wallet", aggregatedEntry.doc.id));
+                remainingToRedeem = 0;
               }
             }
           }
         })
       );
 
-      // Update redemption status
-      await updateDoc(doc(db, "redemptions", redemptionId), {
-        status: "confirmed",
-        confirmedAt: new Date().toISOString(),
-        confirmedByPartner: partnerData.id
-      });
-
       // Create payment records for each product (account for quantities)
+      // IMPORTANT: Create payments BEFORE updating redemption status to 'confirmed'
+      // This ensures that when the client listener fires on 'confirmed', the payments already exist
       await Promise.all(
         scanResult.products.map(product => 
           addDoc(collection(db, "payments"), {
@@ -271,6 +276,13 @@ const PartnerStoreDashboard = () => {
           })
         )
       );
+
+      // Update redemption status
+      await updateDoc(doc(db, "redemptions", redemptionId), {
+        status: "confirmed",
+        confirmedAt: new Date().toISOString(),
+        confirmedByPartner: partnerData.id
+      });
 
       setScanResult(null);
       setRedemptionCode("");
@@ -399,6 +411,7 @@ const PartnerStoreDashboard = () => {
                   }
                 }}
                 constraints={{ facingMode: 'environment' }}
+                scanDelay={500}
                 style={{ width: '100%' }}
               />
             </div>

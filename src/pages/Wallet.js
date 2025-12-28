@@ -9,6 +9,9 @@ import {
   where,
   updateDoc,
   getDoc,
+  deleteDoc,
+  writeBatch,
+  increment,
   onSnapshot,
 } from "firebase/firestore";
 import { db, auth } from "../firebase/firebaseConfig";
@@ -40,7 +43,7 @@ const Wallet = () => {
   const [retrievalQuantities, setRetrievalQuantities] = useState({});
   const [currentPrices, setCurrentPrices] = useState({});
   const [recentRedemptions, setRecentRedemptions] = useState([]);
-  const [activeTab, setActiveTab] = useState('wallet');
+  const [activeTab, setActiveTab] = useState("wallet");
   const [notification, setNotification] = useState(null);
   const [transferHistory, setTransferHistory] = useState([]);
   const [receiveHistory, setReceiveHistory] = useState([]);
@@ -75,69 +78,78 @@ const Wallet = () => {
     const walletRef = collection(db, "users", user.uid, "wallet");
     let prevReceivedCount = 0;
 
-    const unsubscribe = onSnapshot(walletRef, (walletSnapshot) => {
-      try {
-        const itemsMap = new Map();
-        const received = [];
-        const sent = [];
+    const unsubscribe = onSnapshot(
+      walletRef,
+      (walletSnapshot) => {
+        try {
+          const itemsMap = new Map();
+          const received = [];
+          const sent = [];
 
-        walletSnapshot.forEach((docSnapshot) => {
-          const data = docSnapshot.data();
-          const productId = data.productId;
+          walletSnapshot.forEach((docSnapshot) => {
+            const data = docSnapshot.data();
+            const productId = data.productId;
 
-          if (data.transferredFrom === user.uid && data.transferType === 'sent') {
-            sent.push({ ...data, id: docSnapshot.id });
+            if (
+              data.transferredFrom === user.uid &&
+              data.transferType === "sent"
+            ) {
+              sent.push({ ...data, id: docSnapshot.id });
+            }
+
+            // Skip sent items from wallet display
+            if (data.status === "sent") return;
+
+            // Collect received items
+            if (
+              data.transferId &&
+              data.transferredFrom &&
+              data.transferredFrom !== user.uid &&
+              data.status === "active" &&
+              data.transferType === "received"
+            ) {
+              received.push({ ...data, id: docSnapshot.id });
+            }
+
+            if (itemsMap.has(productId)) {
+              const existingItem = itemsMap.get(productId);
+              itemsMap.set(productId, {
+                ...existingItem,
+                quantity: (existingItem.quantity || 1) + (data.quantity || 1),
+                transferredAt: data.transferredAt || existingItem.transferredAt,
+                transferredFrom:
+                  data.transferredFrom || existingItem.transferredFrom,
+                transferredFromEmail:
+                  data.transferredFromEmail ||
+                  existingItem.transferredFromEmail,
+              });
+            } else {
+              itemsMap.set(productId, {
+                id: docSnapshot.id,
+                ...data,
+              });
+            }
+          });
+
+          const items = Array.from(itemsMap.values());
+          setWalletItems(items);
+          setReceiveHistory(received);
+          setTransferHistory(sent);
+
+          if (prevReceivedCount && received.length > prevReceivedCount) {
+            setNotification("You have received a new product!");
+            setTimeout(() => setNotification(null), 3000);
           }
-
-          // Skip sent items from wallet display
-          if (data.status === 'sent') return;
-
-          // Collect received items
-          if (
-            data.transferId &&
-            data.transferredFrom &&
-            data.transferredFrom !== user.uid &&
-            data.status === "active" &&
-            data.transferType === "received"
-          ) {
-            received.push({ ...data, id: docSnapshot.id });
-          }
-
-          if (itemsMap.has(productId)) {
-            const existingItem = itemsMap.get(productId);
-            itemsMap.set(productId, {
-              ...existingItem,
-              quantity: (existingItem.quantity || 1) + (data.quantity || 1),
-              transferredAt: data.transferredAt || existingItem.transferredAt,
-              transferredFrom: data.transferredFrom || existingItem.transferredFrom,
-              transferredFromEmail:
-                data.transferredFromEmail || existingItem.transferredFromEmail,
-            });
-          } else {
-            itemsMap.set(productId, {
-              id: docSnapshot.id,
-              ...data,
-            });
-          }
-        });
-
-        const items = Array.from(itemsMap.values());
-        setWalletItems(items);
-        setReceiveHistory(received);
-        setTransferHistory(sent);
-
-        if (prevReceivedCount && received.length > prevReceivedCount) {
-          setNotification("You have received a new product!");
-          setTimeout(() => setNotification(null), 3000);
+          prevReceivedCount = received.length;
+        } catch (err) {
+          console.error("Error processing wallet snapshot:", err);
+          alert("Failed to load wallet items. Please try again.");
         }
-        prevReceivedCount = received.length;
-      } catch (err) {
-        console.error("Error processing wallet snapshot:", err);
-        alert("Failed to load wallet items. Please try again.");
+      },
+      (error) => {
+        console.error("Error listening to wallet updates:", error);
       }
-    }, (error) => {
-      console.error("Error listening to wallet updates:", error);
-    });
+    );
 
     return () => unsubscribe();
   }, [user]);
@@ -148,77 +160,85 @@ const Wallet = () => {
 
     const walletRef = collection(db, "users", user.uid, "wallet");
     const receivedQuery = query(
-      walletRef, 
+      walletRef,
       where("transferType", "==", "received")
     );
 
-    const unsubscribe = onSnapshot(receivedQuery, (snapshot) => {
-      try {
-        const receivedTransfers = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+    const unsubscribe = onSnapshot(
+      receivedQuery,
+      (snapshot) => {
+        try {
+          const receivedTransfers = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
 
-        // Sort by timestamp locally to avoid Firestore orderBy issues
-        receivedTransfers.sort((a, b) => {
-          const timeA = a.transferredAt?.seconds || 0;
-          const timeB = b.transferredAt?.seconds || 0;
-          return timeB - timeA;
-        });
-
-        // Initialize seen transfers on first load
-        if (lastTransferCount === 0) {
-          const initialSeenIds = new Set(receivedTransfers.map(t => t.id));
-          setSeenTransferIds(initialSeenIds);
-          setLastTransferCount(receivedTransfers.length);
-          return;
-        }
-
-        // Check for new transfers that haven't been seen
-        const newTransfers = receivedTransfers.filter(transfer => 
-          !seenTransferIds.has(transfer.id)
-        );
-        
-        if (newTransfers.length > 0) {
-          newTransfers.forEach(transfer => {
-            // Only show notification if it's a very recent transfer (within last 2 minutes)
-            const transferTime = transfer.transferredAt?.seconds * 1000 || Date.now();
-            const twoMinutesAgo = Date.now() - (2 * 60 * 1000);
-            
-            if (transferTime > twoMinutesAgo) {
-              const notification = {
-                id: `notification_${transfer.id}_${Date.now()}`,
-                productName: transfer.productName,
-                quantity: transfer.quantity,
-                senderEmail: transfer.transferredFromEmail,
-                timestamp: transfer.transferredAt
-              };
-              
-              setTransferNotifications(prev => [...prev, notification]);
-              setNotificationCount(prev => prev + 1);
-            }
+          // Sort by timestamp locally to avoid Firestore orderBy issues
+          receivedTransfers.sort((a, b) => {
+            const timeA = a.transferredAt?.seconds || 0;
+            const timeB = b.transferredAt?.seconds || 0;
+            return timeB - timeA;
           });
-          
-          // Mark these transfers as seen
-          const newSeenIds = new Set(newTransfers.map(t => t.id));
-          setSeenTransferIds(prev => new Set([...prev, ...newSeenIds]));
+
+          // Initialize seen transfers on first load
+          if (lastTransferCount === 0) {
+            const initialSeenIds = new Set(receivedTransfers.map((t) => t.id));
+            setSeenTransferIds(initialSeenIds);
+            setLastTransferCount(receivedTransfers.length);
+            return;
+          }
+
+          // Check for new transfers that haven't been seen
+          const newTransfers = receivedTransfers.filter(
+            (transfer) => !seenTransferIds.has(transfer.id)
+          );
+
+          if (newTransfers.length > 0) {
+            newTransfers.forEach((transfer) => {
+              // Only show notification if it's a very recent transfer (within last 2 minutes)
+              const transferTime =
+                transfer.transferredAt?.seconds * 1000 || Date.now();
+              const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+
+              if (transferTime > twoMinutesAgo) {
+                const notification = {
+                  id: `notification_${transfer.id}_${Date.now()}`,
+                  productName: transfer.productName,
+                  quantity: transfer.quantity,
+                  senderEmail: transfer.transferredFromEmail,
+                  timestamp: transfer.transferredAt,
+                };
+
+                setTransferNotifications((prev) => [...prev, notification]);
+                setNotificationCount((prev) => prev + 1);
+              }
+            });
+
+            // Mark these transfers as seen
+            const newSeenIds = new Set(newTransfers.map((t) => t.id));
+            setSeenTransferIds((prev) => new Set([...prev, ...newSeenIds]));
+          }
+
+          setLastTransferCount(receivedTransfers.length);
+        } catch (error) {
+          console.error("Error processing transfer notifications:", error);
         }
-        
-        setLastTransferCount(receivedTransfers.length);
-      } catch (error) {
-        console.error("Error processing transfer notifications:", error);
+      },
+      (error) => {
+        console.error("Error listening to transfer notifications:", error);
+        // Switch to polling if real-time listener fails
+        setUsePolling(true);
       }
-    }, (error) => {
-      console.error("Error listening to transfer notifications:", error);
-      // Switch to polling if real-time listener fails
-      setUsePolling(true);
-    });
+    );
 
     return () => {
       try {
         unsubscribe();
       } catch (error) {
-        console.error("Error unsubscribing from transfer notifications:", error);
+        console.error(
+          "Error unsubscribing from transfer notifications:",
+          error
+        );
         // Switch to polling if real-time fails
         setUsePolling(true);
       }
@@ -233,14 +253,14 @@ const Wallet = () => {
       try {
         const walletRef = collection(db, "users", user.uid, "wallet");
         const receivedQuery = query(
-          walletRef, 
+          walletRef,
           where("transferType", "==", "received")
         );
-        
+
         const snapshot = await getDocs(receivedQuery);
-        const receivedTransfers = snapshot.docs.map(doc => ({
+        const receivedTransfers = snapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         }));
 
         // Sort by timestamp
@@ -251,33 +271,34 @@ const Wallet = () => {
         });
 
         // Check for new transfers
-        const newTransfers = receivedTransfers.filter(transfer => 
-          !seenTransferIds.has(transfer.id)
+        const newTransfers = receivedTransfers.filter(
+          (transfer) => !seenTransferIds.has(transfer.id)
         );
-        
+
         if (newTransfers.length > 0) {
-          newTransfers.forEach(transfer => {
-            const transferTime = transfer.transferredAt?.seconds * 1000 || Date.now();
-            const twoMinutesAgo = Date.now() - (2 * 60 * 1000);
-            
+          newTransfers.forEach((transfer) => {
+            const transferTime =
+              transfer.transferredAt?.seconds * 1000 || Date.now();
+            const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+
             if (transferTime > twoMinutesAgo) {
               const notification = {
                 id: `notification_${transfer.id}_${Date.now()}`,
                 productName: transfer.productName,
                 quantity: transfer.quantity,
                 senderEmail: transfer.transferredFromEmail,
-                timestamp: transfer.transferredAt
+                timestamp: transfer.transferredAt,
               };
-              
-              setTransferNotifications(prev => [...prev, notification]);
-              setNotificationCount(prev => prev + 1);
+
+              setTransferNotifications((prev) => [...prev, notification]);
+              setNotificationCount((prev) => prev + 1);
             }
           });
-          
-          const newSeenIds = new Set(newTransfers.map(t => t.id));
-          setSeenTransferIds(prev => new Set([...prev, ...newSeenIds]));
+
+          const newSeenIds = new Set(newTransfers.map((t) => t.id));
+          setSeenTransferIds((prev) => new Set([...prev, ...newSeenIds]));
         }
-        
+
         setLastTransferCount(receivedTransfers.length);
       } catch (error) {
         console.error("Error polling for transfer notifications:", error);
@@ -286,7 +307,7 @@ const Wallet = () => {
 
     // Poll every 10 seconds
     const interval = setInterval(checkForNewTransfers, 10000);
-    
+
     // Initial check
     checkForNewTransfers();
 
@@ -315,54 +336,56 @@ const Wallet = () => {
     fetchCurrentPrices();
   }, [walletItems]);
 
-  // Fetch recent redemptions
+  // Listen for recent redemptions
   useEffect(() => {
-    const fetchRecentRedemptions = async () => {
-      if (!user) return;
+    if (!user) return;
 
+    const redemptionsRef = collection(db, "redemptions");
+    const q = query(
+      redemptionsRef,
+      where("userId", "==", user.uid),
+      where("status", "==", "confirmed")
+    );
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
       try {
-        const redemptionsRef = collection(db, "redemptions");
-        const q = query(
-          redemptionsRef,
-          where("userId", "==", user.uid),
-          where("status", "==", "confirmed")
-        );
-        const snapshot = await getDocs(q);
-        
         const redemptions = await Promise.all(
           snapshot.docs.map(async (doc) => {
             const data = doc.data();
             const paymentsRef = collection(db, "payments");
-            const paymentsQuery = query(paymentsRef, where("redemptionId", "==", doc.id));
+            const paymentsQuery = query(
+              paymentsRef,
+              where("redemptionId", "==", doc.id)
+            );
             const paymentsSnapshot = await getDocs(paymentsQuery);
-            
-            const payments = paymentsSnapshot.docs.map(paymentDoc => ({
+
+            const payments = paymentsSnapshot.docs.map((paymentDoc) => ({
               ...paymentDoc.data(),
-              id: paymentDoc.id
+              id: paymentDoc.id,
             }));
-            
+
             return {
               id: doc.id,
               ...data,
-              payments
+              payments,
             };
           })
         );
-        
-          // Sort redemptions by confirmedAt date (most recent first)
-          const sortedRedemptions = redemptions.sort((a, b) => {
-            const dateA = a.confirmedAt?.seconds || 0;
-            const dateB = b.confirmedAt?.seconds || 0;
-            return dateB - dateA; // Most recent first
-          });
-          
-          setRecentRedemptions(sortedRedemptions);
-      } catch (error) {
-        console.error("Error fetching recent redemptions:", error);
-      }
-    };
 
-    fetchRecentRedemptions();
+        // Sort redemptions by confirmedAt date (most recent first)
+        const sortedRedemptions = redemptions.sort((a, b) => {
+          const dateA = a.confirmedAt?.seconds || 0;
+          const dateB = b.confirmedAt?.seconds || 0;
+          return dateB - dateA; // Most recent first
+        });
+
+        setRecentRedemptions(sortedRedemptions);
+      } catch (error) {
+        console.error("Error processing redemptions snapshot:", error);
+      }
+    });
+
+    return () => unsubscribe();
   }, [user]);
 
   // Toggle item selection
@@ -378,9 +401,15 @@ const Wallet = () => {
 
   // Handle quantity change for retrieval
   const handleRetrievalQuantityChange = (itemId, quantity) => {
-    setRetrievalQuantities(prev => ({
+    setRetrievalQuantities((prev) => ({
       ...prev,
-      [itemId]: Math.max(1, Math.min(quantity, walletItems.find(item => item.id === itemId)?.quantity || 1))
+      [itemId]: Math.max(
+        1,
+        Math.min(
+          quantity,
+          walletItems.find((item) => item.id === itemId)?.quantity || 1
+        )
+      ),
     }));
   };
 
@@ -399,12 +428,12 @@ const Wallet = () => {
     try {
       setIsTransferring(true);
       const recipientEmail = transferRecipientEmail.trim();
-      
+
       // Find recipient's user ID
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("email", "==", recipientEmail));
       const querySnapshot = await getDocs(q);
-      
+
       if (querySnapshot.empty) {
         window.showToast?.("Recipient not found", "error");
         setIsTransferring(false);
@@ -414,10 +443,15 @@ const Wallet = () => {
       const recipientDoc = querySnapshot.docs[0];
       const recipientId = recipientDoc.id;
 
-      const quantityToTransfer = Math.min(transferQuantity, transferringItem.quantity || 1);
+      const quantityToTransfer = Math.min(
+        transferQuantity,
+        transferringItem.quantity || 1
+      );
 
       // Generate unique transfer ID for this transaction
-      const transferId = `transfer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const transferId = `transfer_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
       const transferTimestamp = serverTimestamp();
 
       // Always create a separate wallet entry for each transfer to track individual transactions
@@ -433,28 +467,45 @@ const Wallet = () => {
         transferredFrom: user.uid,
         transferredFromEmail: user.email,
         transferId: transferId, // Link to the transfer transaction
-        status: 'active',
-        transferType: 'received' // Mark as received transfer
+        status: "active",
+        transferType: "received", // Mark as received transfer
       });
 
       // REMOVED: Attempt to update aggregated wallet entry
       // This was causing the hang because users cannot UPDATE other users' documents
       // We now rely on client-side aggregation in fetchWalletItems
 
-      // Update sender's wallet
+      // Update sender's wallet using a batch for atomicity and performance
       const senderWalletRef = collection(db, "users", user.uid, "wallet");
-      const senderQuery = query(senderWalletRef, where("productId", "==", transferringItem.productId));
+      const senderQuery = query(
+        senderWalletRef,
+        where("productId", "==", transferringItem.productId)
+      );
       const senderQuerySnapshot = await getDocs(senderQuery);
 
       if (!senderQuerySnapshot.empty) {
+        const batch = writeBatch(db);
         let remainingToTransfer = quantityToTransfer;
 
-        for (const docSnapshot of senderQuerySnapshot.docs) {
+        // Sort docs similarly to ensure consistent deduction order
+        const sortedSenderDocs = senderQuerySnapshot.docs.sort((a, b) => {
+          const dataA = a.data();
+          const dataB = b.data();
+          if (!dataA.transferId && dataB.transferId) return -1;
+          if (dataA.transferId && !dataB.transferId) return 1;
+          return (dataA.transferredAt?.seconds || 0) - (dataB.transferredAt?.seconds || 0);
+        });
+
+        for (const docSnapshot of sortedSenderDocs) {
           if (remainingToTransfer <= 0) break;
 
           const data = docSnapshot.data();
           // Skip 'sent' items or items that are not active
-          if (data.status === 'sent' || (data.status && data.status !== 'active')) continue;
+          if (
+            data.status === "sent" ||
+            (data.status && data.status !== "active")
+          )
+            continue;
 
           const currentQty = data.quantity || 0;
           if (currentQty <= 0) continue;
@@ -463,26 +514,27 @@ const Wallet = () => {
 
           if (currentQty > remainingToTransfer) {
             // This doc has enough to cover the rest
-            await updateDoc(docRef, {
+            batch.update(docRef, {
               quantity: currentQty - remainingToTransfer,
-              status: 'active',
-              updatedAt: transferTimestamp
+              status: "active",
+              updatedAt: transferTimestamp,
             });
             remainingToTransfer = 0;
           } else {
-            // Mark as sent instead of deleting to avoid permission issues
-            await updateDoc(docRef, {
+            // Mark as sent
+            batch.update(docRef, {
               quantity: 0,
-              status: 'sent',
-              updatedAt: transferTimestamp
+              status: "sent",
+              updatedAt: transferTimestamp,
             });
             remainingToTransfer -= currentQty;
           }
         }
 
-        
-        // Log transfer event in sender's wallet for history with unique transfer ID
-        await addDoc(senderWalletRef, {
+        // Log transfer event in sender's wallet for history
+        // We can add this to the batch as well using a new document reference
+        const newHistoryRef = doc(senderWalletRef); // generate new ID
+        batch.set(newHistoryRef, {
           productId: transferringItem.productId,
           productName: transferringItem.productName,
           productPrice: transferringItem.productPrice,
@@ -494,23 +546,28 @@ const Wallet = () => {
           transferredTo: recipientId,
           transferredFrom: user.uid,
           transferId: transferId, // Unique transfer transaction ID
-          transferType: 'sent', // Mark as sent transfer
-          status: 'sent',
+          transferType: "sent", // Mark as sent transfer
+          status: "sent",
         });
+
+        // Commit all changes in one go
+        await batch.commit();
       }
 
       // Update wallet items state
-      setWalletItems(prevItems => {
-        return prevItems.map(item => {
-          if (item.productId === transferringItem.productId) {
-            const newQuantity = item.quantity - quantityToTransfer;
-            if (newQuantity > 0) {
-              return { ...item, quantity: newQuantity };
+      setWalletItems((prevItems) => {
+        return prevItems
+          .map((item) => {
+            if (item.productId === transferringItem.productId) {
+              const newQuantity = item.quantity - quantityToTransfer;
+              if (newQuantity > 0) {
+                return { ...item, quantity: newQuantity };
+              }
+              return null;
             }
-            return null;
-          }
-          return item;
-        }).filter(Boolean);
+            return item;
+          })
+          .filter(Boolean);
       });
 
       closeTransferModal();
@@ -536,19 +593,19 @@ const Wallet = () => {
     }
 
     try {
-      const selectedProducts = walletItems.filter((item) =>
-        selectedItems.includes(item.id)
-      ).map(item => {
-        const selectedQuantity = retrievalQuantities[item.id] || 1;
-        return {
-          productId: item.productId,
-          productName: item.productName,
-          prepaidPrice: item.productPrice,
-          imageUrl: item.imageUrl,
-          quantity: selectedQuantity,
-          totalQuantity: item.quantity
-        };
-      });
+      const selectedProducts = walletItems
+        .filter((item) => selectedItems.includes(item.id))
+        .map((item) => {
+          const selectedQuantity = retrievalQuantities[item.id] || 1;
+          return {
+            productId: item.productId,
+            productName: item.productName,
+            prepaidPrice: item.productPrice,
+            imageUrl: item.imageUrl,
+            quantity: selectedQuantity,
+            totalQuantity: item.quantity,
+          };
+        });
 
       // Create a redemption record
       const redemptionRef = collection(db, "redemptions");
@@ -557,7 +614,7 @@ const Wallet = () => {
         userName: user.email,
         products: selectedProducts,
         status: "pending",
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
       });
 
       // Generate QR code data with redemption ID
@@ -569,13 +626,13 @@ const Wallet = () => {
           name: item.productName,
           price: item.prepaidPrice,
           quantity: item.quantity,
-          totalQuantity: item.totalQuantity
+          totalQuantity: item.totalQuantity,
         })),
       };
 
       setRedemptionId(redemptionDoc.id);
       setQrCodeData(JSON.stringify(qrData));
-      
+
       // Don't clear selections or quantities yet
       // They will be cleared when the redemption is confirmed
     } catch (error) {
@@ -598,45 +655,56 @@ const Wallet = () => {
           setRetrievalQuantities({});
           setRedemptionId(null);
           setQrCodeData(null);
-          
+
           // Refresh wallet data to reflect the changes made by PartnerStoreDashboard
           const refreshWallet = async () => {
             try {
-                const walletRef = collection(db, "users", user.uid, "wallet");
+              const walletRef = collection(db, "users", user.uid, "wallet");
               const walletSnapshot = await getDocs(walletRef);
               const itemsMap = new Map();
               let received = [];
-              
-              walletSnapshot.docs.forEach(doc => {
+
+              walletSnapshot.docs.forEach((doc) => {
                 const data = doc.data();
                 const productId = data.productId;
-                
+
                 // Collect received items first - only from individual transfer entries with transferId
-                if (data.transferId && data.transferredFrom && data.transferredFrom !== user.uid && data.status === 'active' && data.transferType === 'received') {
+                if (
+                  data.transferId &&
+                  data.transferredFrom &&
+                  data.transferredFrom !== user.uid &&
+                  data.status === "active" &&
+                  data.transferType === "received"
+                ) {
                   received.push({ ...data, id: doc.id });
                 }
-                
+
                 // Aggregate wallet items for display - exclude individual transfer history entries
-                // Include: original purchases and aggregated entries (those without transferId)
-                if (!data.transferId) {
+                // Include: original purchases and aggregated entries (those without transferId) OR received transfers
+                if (!data.transferId || data.transferType === 'received') {
                   if (itemsMap.has(productId)) {
                     const existingItem = itemsMap.get(productId);
                     itemsMap.set(productId, {
                       ...existingItem,
-                      quantity: (existingItem.quantity || 1) + (data.quantity || 1),
-                      transferredAt: data.transferredAt || existingItem.transferredAt,
-                      transferredFrom: data.transferredFrom || existingItem.transferredFrom,
-                      transferredFromEmail: data.transferredFromEmail || existingItem.transferredFromEmail
+                      quantity:
+                        (existingItem.quantity || 1) + (data.quantity || 1),
+                      transferredAt:
+                        data.transferredAt || existingItem.transferredAt,
+                      transferredFrom:
+                        data.transferredFrom || existingItem.transferredFrom,
+                      transferredFromEmail:
+                        data.transferredFromEmail ||
+                        existingItem.transferredFromEmail,
                     });
                   } else {
                     itemsMap.set(productId, {
                       id: doc.id,
-                      ...data
+                      ...data,
                     });
                   }
                 }
               });
-              
+
               const items = Array.from(itemsMap.values());
               setWalletItems(items);
               setReceiveHistory(received);
@@ -691,28 +759,36 @@ const Wallet = () => {
     try {
       const usersRef = collection(db, "users");
       // Search by email
-      const emailQuery = query(usersRef, where("email", ">=", query), where("email", "<=", query + "\uf8ff"));
+      const emailQuery = query(
+        usersRef,
+        where("email", ">=", query),
+        where("email", "<=", query + "\uf8ff")
+      );
       const emailSnapshot = await getDocs(emailQuery);
-      
+
       // Search by display name
-      const nameQuery = query(usersRef, where("displayName", ">=", query), where("displayName", "<=", query + "\uf8ff"));
+      const nameQuery = query(
+        usersRef,
+        where("displayName", ">=", query),
+        where("displayName", "<=", query + "\uf8ff")
+      );
       const nameSnapshot = await getDocs(nameQuery);
-      
+
       // Combine results and remove duplicates
       const results = [];
       const addedIds = new Set();
-      
-      [...emailSnapshot.docs, ...nameSnapshot.docs].forEach(doc => {
+
+      [...emailSnapshot.docs, ...nameSnapshot.docs].forEach((doc) => {
         if (!addedIds.has(doc.id) && doc.id !== user.uid) {
           addedIds.add(doc.id);
           results.push({
             id: doc.id,
             email: doc.data().email,
-            displayName: doc.data().displayName || doc.data().email
+            displayName: doc.data().displayName || doc.data().email,
           });
         }
       });
-      
+
       setSearchResults(results);
     } catch (error) {
       console.error("Error searching users:", error);
@@ -740,7 +816,7 @@ const Wallet = () => {
     return walletItems.reduce((total, item) => {
       const itemPrice = parseFloat(item.productPrice) || 0;
       const itemQuantity = item.quantity || 1;
-      return total + (itemPrice * itemQuantity);
+      return total + itemPrice * itemQuantity;
     }, 0);
   };
 
@@ -756,30 +832,38 @@ const Wallet = () => {
   // Calculate total savings for selected items
   const calculateTotalSavings = () => {
     return recentRedemptions.reduce((total, redemption) => {
-      return total + redemption.payments.reduce((sum, payment) => {
-        return sum + (payment.priceDifference || 0);
-      }, 0);
+      return (
+        total +
+        redemption.payments.reduce((sum, payment) => {
+          return sum + (payment.priceDifference || 0);
+        }, 0)
+      );
     }, 0);
   };
 
   // Calculate total savings from all redemptions
   const calculateTotalSavingsFromAllRedemptions = () => {
     return recentRedemptions.reduce((total, redemption) => {
-      return total + redemption.payments.reduce((sum, payment) => {
-        return sum + (payment.priceDifference || 0);
-      }, 0);
+      return (
+        total +
+        redemption.payments.reduce((sum, payment) => {
+          return sum + (payment.priceDifference || 0);
+        }, 0)
+      );
     }, 0);
   };
 
   // Handle notification dismissal
   const handleNotificationDismiss = (notificationId) => {
-    setTransferNotifications(prev => prev.filter(n => n.id !== notificationId));
-    setNotificationCount(prev => Math.max(0, prev - 1));
+    setTransferNotifications((prev) =>
+      prev.filter((n) => n.id !== notificationId)
+    );
+    setNotificationCount((prev) => Math.max(0, prev - 1));
   };
 
   // Handle notification icon toggle
   const handleNotificationIconToggle = () => {
-    setIsNotificationIconOpen(prev => {
+    setIsNotificationIconOpen((prev) => {
       const nextState = !prev;
       if (!prev && notificationCount > 0) {
         setNotificationCount(0);
@@ -792,18 +876,18 @@ const Wallet = () => {
   // Manual refresh for notifications (fallback)
   const refreshNotifications = async () => {
     if (!user) return;
-    
+
     try {
       const walletRef = collection(db, "users", user.uid, "wallet");
       const receivedQuery = query(
-        walletRef, 
+        walletRef,
         where("transferType", "==", "received")
       );
-      
+
       const snapshot = await getDocs(receivedQuery);
-      const receivedTransfers = snapshot.docs.map(doc => ({
+      const receivedTransfers = snapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
 
       // Sort by timestamp
@@ -814,33 +898,34 @@ const Wallet = () => {
       });
 
       // Check for new transfers
-      const newTransfers = receivedTransfers.filter(transfer => 
-        !seenTransferIds.has(transfer.id)
+      const newTransfers = receivedTransfers.filter(
+        (transfer) => !seenTransferIds.has(transfer.id)
       );
-      
+
       if (newTransfers.length > 0) {
-        newTransfers.forEach(transfer => {
-          const transferTime = transfer.transferredAt?.seconds * 1000 || Date.now();
-          const twoMinutesAgo = Date.now() - (2 * 60 * 1000);
-          
+        newTransfers.forEach((transfer) => {
+          const transferTime =
+            transfer.transferredAt?.seconds * 1000 || Date.now();
+          const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+
           if (transferTime > twoMinutesAgo) {
             const notification = {
               id: `notification_${transfer.id}_${Date.now()}`,
               productName: transfer.productName,
               quantity: transfer.quantity,
               senderEmail: transfer.transferredFromEmail,
-              timestamp: transfer.transferredAt
+              timestamp: transfer.transferredAt,
             };
-            
-            setTransferNotifications(prev => [...prev, notification]);
-            setNotificationCount(prev => prev + 1);
+
+            setTransferNotifications((prev) => [...prev, notification]);
+            setNotificationCount((prev) => prev + 1);
           }
         });
-        
-        const newSeenIds = new Set(newTransfers.map(t => t.id));
-        setSeenTransferIds(prev => new Set([...prev, ...newSeenIds]));
+
+        const newSeenIds = new Set(newTransfers.map((t) => t.id));
+        setSeenTransferIds((prev) => new Set([...prev, ...newSeenIds]));
       }
-      
+
       setLastTransferCount(receivedTransfers.length);
     } catch (error) {
       console.error("Error refreshing notifications:", error);
@@ -850,19 +935,24 @@ const Wallet = () => {
   // Calculate total items redeemed
   const calculateTotalItemsRedeemed = () => {
     return recentRedemptions.reduce((total, redemption) => {
-      return total + redemption.payments.length;
+      return (
+        total +
+        redemption.payments.reduce((sum, payment) => {
+          return sum + (payment.quantity || 1);
+        }, 0)
+      );
     }, 0);
   };
 
   // Calculate savings for selected items
   const calculateSelectedItemsSavings = () => {
     return selectedItems.reduce((total, itemId) => {
-      const item = walletItems.find(item => item.id === itemId);
+      const item = walletItems.find((item) => item.id === itemId);
       if (item) {
         const currentPrice = currentPrices[item.productId] || item.productPrice;
         const prepaidPrice = item.productPrice;
         const quantity = retrievalQuantities[item.id] || 1;
-        return total + ((currentPrice - prepaidPrice) * quantity);
+        return total + (currentPrice - prepaidPrice) * quantity;
       }
       return total;
     }, 0);
@@ -875,20 +965,18 @@ const Wallet = () => {
       transition={{ duration: 0.5 }}
       className="wallet-container"
     >
-      {notification && (
-        <div className="notification">{notification}</div>
-      )}
-      
+      {notification && <div className="notification">{notification}</div>}
+
       {/* Fixed Notification Icon */}
-      <NotificationIcon 
+      <NotificationIcon
         notificationCount={notificationCount}
         onToggle={handleNotificationIconToggle}
         isOpen={isNotificationIconOpen}
         onRefresh={refreshNotifications}
       />
-      
+
       {/* Transfer Notifications */}
-      <TransferNotification 
+      <TransferNotification
         notifications={transferNotifications}
         onDismiss={handleNotificationDismiss}
       />
@@ -916,17 +1004,30 @@ const Wallet = () => {
       <div className="subscription-status">
         {(() => {
           const subscriptionInfo = getSubscriptionInfo();
-          const totalItems = walletItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
-          
+          const totalItems = walletItems.reduce(
+            (sum, item) => sum + (item.quantity || 1),
+            0
+          );
+
           return (
-            <div className={`subscription-card ${subscriptionInfo?.isActive ? 'active' : 'inactive'}`}>
+            <div
+              className={`subscription-card ${
+                subscriptionInfo?.isActive ? "active" : "inactive"
+              }`}
+            >
               <div className="subscription-info">
                 <h3>Storage Plan</h3>
                 <p className="plan-status">
                   {subscriptionInfo?.isActive ? (
                     <>
-                      <span className="plan-name">{subscriptionInfo.plan.charAt(0).toUpperCase() + subscriptionInfo.plan.slice(1)} Plan</span>
-                      <span className="plan-days">({subscriptionInfo.daysRemaining} days remaining)</span>
+                      <span className="plan-name">
+                        {subscriptionInfo.plan.charAt(0).toUpperCase() +
+                          subscriptionInfo.plan.slice(1)}{" "}
+                        Plan
+                      </span>
+                      <span className="plan-days">
+                        ({subscriptionInfo.daysRemaining} days remaining)
+                      </span>
                     </>
                   ) : (
                     <span className="plan-name">Free Plan (1 item limit)</span>
@@ -940,7 +1041,7 @@ const Wallet = () => {
                 </p>
               </div>
               {!subscriptionInfo?.isActive && (
-                <button 
+                <button
                   className="upgrade-button"
                   onClick={() => setShowSubscriptionModal(true)}
                 >
@@ -956,45 +1057,47 @@ const Wallet = () => {
       {/* Navigation Bar */}
       <div className="nav-tabs">
         <button
-          onClick={() => setActiveTab('wallet')}
-          className={`nav-tab ${activeTab === 'wallet' ? 'active' : ''}`}
+          onClick={() => setActiveTab("wallet")}
+          className={`nav-tab ${activeTab === "wallet" ? "active" : ""}`}
         >
           My Food Wallet
         </button>
         <button
-          onClick={() => setActiveTab('activity')}
-          className={`nav-tab ${activeTab === 'activity' ? 'active' : ''}`}
+          onClick={() => setActiveTab("activity")}
+          className={`nav-tab ${activeTab === "activity" ? "active" : ""}`}
         >
           Activity Log
         </button>
         <button
           onClick={() => navigate("/nearby-stores")}
           className="nav-tab"
-          style={{ backgroundColor: '#059669', color: 'white' }}
+          style={{ backgroundColor: "#059669", color: "white" }}
         >
           Find Pickup Stores
         </button>
-        <button
-          onClick={() => navigate("/products")}
-          className="back-button"
-        >
+        <button onClick={() => navigate("/products")} className="back-button">
           Secure More Food
         </button>
       </div>
 
       {/* Wallet Tab Content */}
-      {activeTab === 'wallet' && (
+      {activeTab === "wallet" && (
         <>
-          <p className="wallet-microcopy">Your items are safe here. Pick them up whenever you're ready.</p>
+          <p className="wallet-microcopy">
+            Your items are safe here. Pick them up whenever you're ready.
+          </p>
           {selectedItems.length > 0 && (
             <div className="stat-card green">
               <p className="stat-title">
-                Inflation Protected on Selected Items: ₦{calculateSelectedItemsSavings().toFixed(2)}
+                Inflation Protected on Selected Items: ₦
+                {calculateSelectedItemsSavings().toFixed(2)}
               </p>
             </div>
           )}
           {walletItems.length === 0 ? (
-            <p>Your food reserve is empty. Start building your safety net today.</p>
+            <p>
+              Your food reserve is empty. Start building your safety net today.
+            </p>
           ) : (
             <>
               <div className="wallet-items-grid">
@@ -1012,11 +1115,17 @@ const Wallet = () => {
                       className="wallet-item-image"
                     />
                     <h3 className="wallet-item-name">{item.productName}</h3>
-                    <p className="wallet-item-price">Secured Price: ₦{item.productPrice}</p>
+                    <p className="wallet-item-price">
+                      Secured Price: ₦{item.productPrice}
+                    </p>
                     {currentPrices[item.productId] && (
-                      <p className="wallet-item-price">Current Price: ₦{currentPrices[item.productId]}</p>
+                      <p className="wallet-item-price">
+                        Current Price: ₦{currentPrices[item.productId]}
+                      </p>
                     )}
-                    <p className="wallet-item-quantity">Quantity: {item.quantity || 1}</p>
+                    <p className="wallet-item-quantity">
+                      Quantity: {item.quantity || 1}
+                    </p>
                     {selectedItems.includes(item.id) && (
                       <div>
                         <label>
@@ -1026,13 +1135,19 @@ const Wallet = () => {
                             min="1"
                             max={item.quantity || 1}
                             value={retrievalQuantities[item.id] || 1}
-                            onChange={(e) => handleRetrievalQuantityChange(item.id, parseInt(e.target.value))}
+                            onChange={(e) =>
+                              handleRetrievalQuantityChange(
+                                item.id,
+                                parseInt(e.target.value)
+                              )
+                            }
                             className="quantity-input"
                           />
                         </label>
                         {calculateSelectedItemsSavings() > 0 && (
                           <p className="savings-badge">
-                            Inflation Protected: ₦{calculateSelectedItemsSavings().toFixed(2)}
+                            Inflation Protected: ₦
+                            {calculateSelectedItemsSavings().toFixed(2)}
                           </p>
                         )}
                       </div>
@@ -1060,7 +1175,7 @@ const Wallet = () => {
                   <button
                     onClick={generateQrCode}
                     className="transfer-button"
-                    style={{ maxWidth: '200px' }}
+                    style={{ maxWidth: "200px" }}
                   >
                     Get Pickup Code
                   </button>
@@ -1083,7 +1198,10 @@ const Wallet = () => {
                       <button
                         onClick={() => {
                           navigator.clipboard.writeText(redemptionId);
-                          window.showToast?.("Redemption ID copied to clipboard!", 'success');
+                          window.showToast?.(
+                            "Redemption ID copied to clipboard!",
+                            "success"
+                          );
                         }}
                         className="copy-button"
                       >
@@ -1102,27 +1220,38 @@ const Wallet = () => {
       )}
 
       {/* Activity Log Tab Content */}
-      {activeTab === 'activity' && (
+      {activeTab === "activity" && (
         <div className="activity-log">
           <div className="activity-section">
             <h3>Pickup History</h3>
             {recentRedemptions.length === 0 ? (
-              <p className="text-gray-500">No activity yet. Your future self will thank you for starting.</p>
+              <p className="text-gray-500">
+                No activity yet. Your future self will thank you for starting.
+              </p>
             ) : (
               recentRedemptions.map((redemption) => (
                 <div key={redemption.id} className="redemption-card">
                   <div className="flex justify-between items-center">
                     <p className="redemption-date">
-                      Picked up on: {new Date(redemption.confirmedAt).toLocaleString()}
+                      Picked up on:{" "}
+                      {new Date(redemption.confirmedAt).toLocaleString()}
                     </p>
                     <p className="redemption-savings">
-                      Inflation Protected: ₦{redemption.payments.reduce((sum, payment) => sum + payment.priceDifference, 0).toFixed(2)}
+                      Inflation Protected: ₦
+                      {redemption.payments
+                        .reduce(
+                          (sum, payment) => sum + payment.priceDifference,
+                          0
+                        )
+                        .toFixed(2)}
                     </p>
                   </div>
                   <div className="redemption-items-grid">
                     {redemption.payments.map((payment) => (
                       <div key={payment.id} className="redemption-item">
-                        <p className="redemption-item-name">{payment.productName}</p>
+                        <p className="redemption-item-name">
+                          {payment.productName}
+                        </p>
                         <div className="price-row">
                           <span>Secured Price:</span>
                           <span>₦{payment.prepaidPrice}</span>
@@ -1139,7 +1268,7 @@ const Wallet = () => {
             )}
           </div>
 
-          <div className="activity-section" style={{ marginTop: '2rem' }}>
+          <div className="activity-section" style={{ marginTop: "2rem" }}>
             <h3>Sharing History</h3>
             <div className="sharing-history-grid">
               <div className="sharing-column">
@@ -1150,16 +1279,31 @@ const Wallet = () => {
                   <ul>
                     {receiveHistory
                       .sort((a, b) => {
-                        const timeA = a.transferredAt ? a.transferredAt.seconds : 0;
-                        const timeB = b.transferredAt ? b.transferredAt.seconds : 0;
+                        const timeA = a.transferredAt
+                          ? a.transferredAt.seconds
+                          : 0;
+                        const timeB = b.transferredAt
+                          ? b.transferredAt.seconds
+                          : 0;
                         return timeB - timeA;
                       })
                       .map((item, index) => (
-                      <li key={`received-${item.transferId || item.id}-${index}`}>
-                        Received {item.productName} (Qty: {item.quantity}) from {item.transferredFromEmail || 'Unknown'} <br/>
-                        <span className="text-sm text-gray-500">{item.transferredAt ? new Date(item.transferredAt.seconds * 1000).toLocaleString() : 'Unknown'}</span>
-                      </li>
-                    ))}
+                        <li
+                          key={`received-${
+                            item.transferId || item.id
+                          }-${index}`}
+                        >
+                          Received {item.productName} (Qty: {item.quantity})
+                          from {item.transferredFromEmail || "Unknown"} <br />
+                          <span className="text-sm text-gray-500">
+                            {item.transferredAt
+                              ? new Date(
+                                  item.transferredAt.seconds * 1000
+                                ).toLocaleString()
+                              : "Unknown"}
+                          </span>
+                        </li>
+                      ))}
                   </ul>
                 )}
               </div>
@@ -1171,16 +1315,27 @@ const Wallet = () => {
                   <ul>
                     {transferHistory
                       .sort((a, b) => {
-                        const timeA = a.transferredAt ? a.transferredAt.seconds : 0;
-                        const timeB = b.transferredAt ? b.transferredAt.seconds : 0;
+                        const timeA = a.transferredAt
+                          ? a.transferredAt.seconds
+                          : 0;
+                        const timeB = b.transferredAt
+                          ? b.transferredAt.seconds
+                          : 0;
                         return timeB - timeA;
                       })
                       .map((item, index) => (
-                      <li key={`sent-${item.transferId || item.id}-${index}`}>
-                         Sent {item.productName} (Qty: {item.quantity}) to {item.transferredToEmail || 'Unknown'} <br/>
-                         <span className="text-sm text-gray-500">{item.transferredAt ? new Date(item.transferredAt.seconds * 1000).toLocaleString() : 'Unknown'}</span>
-                      </li>
-                    ))}
+                        <li key={`sent-${item.transferId || item.id}-${index}`}>
+                          Sent {item.productName} (Qty: {item.quantity}) to{" "}
+                          {item.transferredToEmail || "Unknown"} <br />
+                          <span className="text-sm text-gray-500">
+                            {item.transferredAt
+                              ? new Date(
+                                  item.transferredAt.seconds * 1000
+                                ).toLocaleString()
+                              : "Unknown"}
+                          </span>
+                        </li>
+                      ))}
                   </ul>
                 )}
               </div>
@@ -1189,9 +1344,91 @@ const Wallet = () => {
         </div>
       )}
 
+      {/* Transfer Modal */}
+      {showTransferModal && transferringItem && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3 className="modal-title">Share Food</h3>
+            
+            <div className="modal-body">
+              <div className="transfer-item-info">
+                <img 
+                  src={transferringItem.imageUrl || "https://via.placeholder.com/100"} 
+                  alt={transferringItem.productName}
+                  className="transfer-item-image"
+                />
+                <div>
+                  <h4>{transferringItem.productName}</h4>
+                  <p>Available: {transferringItem.quantity}</p>
+                </div>
+              </div>
+
+              <div className="transfer-form">
+                <div className="form-group">
+                  <label>Recipient Email</label>
+                  <input
+                    type="email"
+                    value={transferRecipientEmail}
+                    onChange={(e) => {
+                      setTransferRecipientEmail(e.target.value);
+                      handleSearchChange(e);
+                    }}
+                    placeholder="Enter email address"
+                    className="form-input"
+                  />
+                  {/* Search Results */}
+                  {searchResults.length > 0 && (
+                    <div className="search-results">
+                      {searchResults.map((result) => (
+                        <div
+                          key={result.id}
+                          className="search-result-item"
+                          onClick={() => selectRecipient(result)}
+                        >
+                          <div className="font-medium">{result.displayName}</div>
+                          <div className="email">{result.email}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label>Quantity to Share</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={transferringItem.quantity}
+                    value={transferQuantity}
+                    onChange={(e) => setTransferQuantity(parseInt(e.target.value))}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button 
+                onClick={closeTransferModal}
+                className="modal-button cancel"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleTransfer}
+                disabled={isTransferring || !transferRecipientEmail}
+                className="modal-button confirm"
+              >
+                {isTransferring ? 'Sharing...' : 'Share Food'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Subscription Modal */}
       {showSubscriptionModal && (
-        <SubscriptionPlans 
+        <SubscriptionPlans
           onClose={() => setShowSubscriptionModal(false)}
           showUpgradePrompt={false}
         />

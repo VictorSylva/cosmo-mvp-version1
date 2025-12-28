@@ -6,6 +6,7 @@
   min-height: 100vh;
   background: #f0f2f5; /* Light background */
   font-family: Arial, sans-serif;
+  padding-bottom: 120px; /* Space for fixed notifications */
 }
 
 /* Header */
@@ -328,14 +329,18 @@
     width: auto;
     max-width: none;
   }
-  
+
   .warning-content {
     flex-direction: column;
     text-align: center;
     gap: 10px;
   }
-  
+
   .upgrade-button {
     width: 100%;
   }
-} 
+
+  .cart-page-container {
+      padding-bottom: 180px; /* More space on mobile for stacked content */
+  }
+}
